@@ -1,0 +1,24 @@
+{
+  "_comment": "UP Mindanao Campus Map Data",
+  "_description": "Graph representation of campus paths and buildings",
+  
+  "vertices": [
+    "_comment: List of all buildings and locations on campus",
+    "_format: Each vertex should have an id/name",
+    "_example: Main Library, College of Science and Mathematics, etc."
+  ],
+  
+  "edges": [
+    "_comment: List of all paths between locations",
+    "_format: Each edge should have source, destination, and weight (distance in meters)",
+    "_example: { source: 'Main Library', destination: 'CSM Building', weight: 150 }"
+  ],
+  
+  "metadata": {
+    "_comment": "Additional information about the campus map",
+    "total_vertices": 0,
+    "total_edges": 0,
+    "last_updated": "2025-12-07",
+    "units": "meters"
+  }
+}
