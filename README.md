@@ -18,22 +18,20 @@ Navigate to: `http://localhost:5000`
 ## Project Structure
 
 ```
-upmindanao_system/
+CMSC122-FinalProject/
 ├── app.py                      # Flask web server
-├── main.py                     # Original CLI application
-├── graph.py                    # Graph implementation
-├── algorithms.py               # Pathfinding algorithms
-├── buildings.py                # Building data management
-├── utils.py                    # Helper functions
+├── algorithms.py               # Pathfinding algorithms (to be implemented)
 ├── templates/
 │   └── index.html             # Main web page
 ├── static/
 │   ├── css/
 │   │   └── style.css          # Stylesheet
-│   └── js/
-│       └── script.js          # Frontend JavaScript
+│   ├── js/
+│   │   └── script.js          # Frontend JavaScript
+│   └── data/
+│       └── campus_map.geojson # Campus map data
 ├── data/
-│   └── campus_map.json        # Campus data
+│   └── campus_map.geojson     # Campus data (GeoJSON format)
 └── requirements.txt           # Python dependencies
 ```
 
@@ -44,11 +42,11 @@ upmindanao_system/
 - Generate Minimum Spanning Trees (Kruskal & Prim)
 - View all campus buildings
 - Responsive design for mobile and desktop
+- GeoJSON-based map data with real coordinates
 
 ## Technologies
 
 - **Backend**: Python, Flask
 - **Frontend**: HTML, CSS, JavaScript
-- **Visualization**: Canvas/SVG (to be implemented)
-- **Data**: JSON
+- **Data**: GeoJSON
 
