@@ -1,7 +1,44 @@
+// Initialize map
+let map;
+let campusData;
+
 // Load buildings when page loads
 window.onload = function() {
+    initMap();
     loadBuildings();
 };
+
+function initMap() {
+    // Center on UP Mindanao coordinates
+    map = L.map('map').setView([7.0851, 125.4790], 15);
+    
+    // Add OpenStreetMap tiles
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors'
+    }).addTo(map);
+    
+    // Load and display GeoJSON
+    fetch('/static/data/campus_map.geojson')
+        .then(response => response.json())
+        .then(data => {
+            campusData = data;
+            
+            // Add GeoJSON layer
+            L.geoJSON(data, {
+                pointToLayer: function(feature, latlng) {
+                    return L.marker(latlng).bindPopup(feature.properties.Name || 'Unknown');
+                },
+                style: function(feature) {
+                    return {
+                        color: '#667eea',
+                        weight: 3,
+                        opacity: 0.7
+                    };
+                }
+            }).addTo(map);
+        })
+        .catch(error => console.error('Error loading map:', error));
+}
 
 function loadBuildings() {
     fetch('/api/buildings')

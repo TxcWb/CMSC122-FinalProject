@@ -2,26 +2,30 @@ from flask import Flask, render_template, request, jsonify
 
 app = Flask(__name__)
 
-# Sample data - replace with your actual graph implementation
+# UP Mindanao Campus Buildings
 buildings = [
-    "Main Library",
-    "CSM Building",
-    "CAS Building",
-    "Admin Building",
-    "Gymnasium",
-    "Canteen",
-    "Student Center"
+    "College of Science and Mathematics",
+    "UP Mindanao Admin Building",
+    "Davao City Sports Complex",
+    "UP Mindanao Human Kinetics Building and Training Gym",
+    "UP Mindanao Aquatics Center",
+    "EBL Dorm",
+    "CARIM Building",
+    "Kalimudan",
+    "Mindanao Studies & Cultural Center"
 ]
 
-# Sample graph (you'll replace this with your actual graph structure)
+# Sample graph (you'll replace this with your actual graph structure from GeoJSON)
 graph = {
-    "Main Library": [("CSM Building", 150), ("Admin Building", 200)],
-    "CSM Building": [("Main Library", 150), ("CAS Building", 100)],
-    "CAS Building": [("CSM Building", 100), ("Gymnasium", 180)],
-    "Admin Building": [("Main Library", 200), ("Student Center", 120)],
-    "Gymnasium": [("CAS Building", 180), ("Canteen", 90)],
-    "Canteen": [("Gymnasium", 90), ("Student Center", 110)],
-    "Student Center": [("Admin Building", 120), ("Canteen", 110)]
+    "College of Science and Mathematics": [("CARIM Building", 150), ("UP Mindanao Aquatics Center", 200)],
+    "UP Mindanao Admin Building": [("EBL Dorm", 100), ("Mindanao Studies & Cultural Center", 250)],
+    "Davao City Sports Complex": [("UP Mindanao Human Kinetics Building and Training Gym", 80)],
+    "UP Mindanao Human Kinetics Building and Training Gym": [("Davao City Sports Complex", 80), ("UP Mindanao Aquatics Center", 300)],
+    "UP Mindanao Aquatics Center": [("College of Science and Mathematics", 200), ("UP Mindanao Human Kinetics Building and Training Gym", 300)],
+    "EBL Dorm": [("UP Mindanao Admin Building", 100), ("Kalimudan", 150)],
+    "CARIM Building": [("College of Science and Mathematics", 150), ("Mindanao Studies & Cultural Center", 180)],
+    "Kalimudan": [("EBL Dorm", 150), ("UP Mindanao Admin Building", 200)],
+    "Mindanao Studies & Cultural Center": [("UP Mindanao Admin Building", 250), ("CARIM Building", 180)]
 }
 
 @app.route('/')
