@@ -52,11 +52,3 @@ upmindanao_system/
 - **Visualization**: Canvas/SVG (to be implemented)
 - **Data**: JSON
 
-## API Endpoints
-
-- `GET /` - Main page
-- `GET /api/buildings` - Get all buildings
-- `POST /api/shortest-path` - Find shortest path
-- `GET /api/mst/kruskal` - Generate MST using Kruskal
-- `POST /api/mst/prim` - Generate MST using Prim
-- `GET /api/graph` - Get complete graph data
