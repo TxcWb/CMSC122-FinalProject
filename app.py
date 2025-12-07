@@ -1,32 +1,27 @@
 from flask import Flask, render_template, request, jsonify
+import json
+from pathlib import Path
 
 app = Flask(__name__)
 
-# UP Mindanao Campus Buildings
-buildings = [
-    "College of Science and Mathematics",
-    "UP Mindanao Admin Building",
-    "Davao City Sports Complex",
-    "UP Mindanao Human Kinetics Building and Training Gym",
-    "UP Mindanao Aquatics Center",
-    "EBL Dorm",
-    "CARIM Building",
-    "Kalimudan",
-    "Mindanao Studies & Cultural Center"
-]
+# Load GeoJSON data
+def load_geojson():
+    geojson_path = Path(__file__).parent / 'data' / 'campus_map.geojson'
+    with open(geojson_path, 'r') as f:
+        return json.load(f)
 
-# Sample graph (you'll replace this with your actual graph structure from GeoJSON)
-graph = {
-    "College of Science and Mathematics": [("CARIM Building", 150), ("UP Mindanao Aquatics Center", 200)],
-    "UP Mindanao Admin Building": [("EBL Dorm", 100), ("Mindanao Studies & Cultural Center", 250)],
-    "Davao City Sports Complex": [("UP Mindanao Human Kinetics Building and Training Gym", 80)],
-    "UP Mindanao Human Kinetics Building and Training Gym": [("Davao City Sports Complex", 80), ("UP Mindanao Aquatics Center", 300)],
-    "UP Mindanao Aquatics Center": [("College of Science and Mathematics", 200), ("UP Mindanao Human Kinetics Building and Training Gym", 300)],
-    "EBL Dorm": [("UP Mindanao Admin Building", 100), ("Kalimudan", 150)],
-    "CARIM Building": [("College of Science and Mathematics", 150), ("Mindanao Studies & Cultural Center", 180)],
-    "Kalimudan": [("EBL Dorm", 150), ("UP Mindanao Admin Building", 200)],
-    "Mindanao Studies & Cultural Center": [("UP Mindanao Admin Building", 250), ("CARIM Building", 180)]
-}
+# Extract buildings and graph from GeoJSON
+geojson_data = load_geojson()
+buildings = []
+graph = {}
+
+# Extract building locations (Point features)
+for feature in geojson_data['features']:
+    if feature['geometry']['type'] == 'Point':
+        name = feature['properties'].get('Name', '')
+        if name:
+            buildings.append(name)
+            graph[name] = []
 
 @app.route('/')
 def index():
