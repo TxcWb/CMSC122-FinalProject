@@ -1,0 +1,8 @@
+# Python dependencies for the web application
+
+# Flask - Web framework
+# Flask-CORS - Handle Cross-Origin Resource Sharing if needed
+
+# Add these when you're ready to implement:
+# flask
+# flask-cors
