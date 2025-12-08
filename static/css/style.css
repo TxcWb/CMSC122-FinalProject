@@ -129,6 +129,36 @@ button {
     line-height: 1.8;
 }
 
+.path-result h4 {
+    color: #e74c3c;
+    margin-bottom: 0.5rem;
+}
+
+.algorithm-info {
+    font-size: 0.9rem;
+    color: #7f8c8d;
+    font-style: italic;
+    margin-bottom: 1rem;
+}
+
+.path-result ul {
+    list-style-position: inside;
+    margin-bottom: 1rem;
+}
+
+.path-result li {
+    padding: 0.5rem;
+    background: #ecf0f1;
+    margin-bottom: 0.5rem;
+    border-radius: 3px;
+    border-left: 4px solid #e74c3c;
+}
+
+.edge-weight {
+    color: #7f8c8d;
+    font-size: 0.9rem;
+}
+
 .distance {
     color: #667eea;
     font-weight: bold;

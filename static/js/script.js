@@ -81,6 +81,9 @@ function findPath() {
         return;
     }
     
+    // Clear previous MST visualization when finding a new path
+    clearMSTLayers();
+    
     document.getElementById('output').innerHTML = '<p>Finding path...</p>';
     
     fetch('/api/shortest-path', {
@@ -117,21 +120,85 @@ function findPath() {
 function showMST() {
     document.getElementById('output').innerHTML = '<p>Generating Minimum Spanning Tree...</p>';
     
+    // Clear previous MST layers
+    clearMSTLayers();
+    
     fetch('/api/mst')
         .then(response => response.json())
         .then(data => {
             if (data.error) {
                 document.getElementById('output').innerHTML = `<p style="color: red;">${data.error}</p>`;
             } else {
-                let html = '<div class="path-result"><h4>🌳 Minimum Spanning Tree</h4><ul>';
-                data.edges.forEach(edge => {
-                    html += `<li>${edge[0]} ↔ ${edge[1]} (${edge[2]}m)</li>`;
-                });
-                html += `</ul><p class="distance">Total Weight: ${data.total_weight} meters</p></div>`;
+                // Render all MST edges on map (including path nodes for full connectivity)
+                renderMSTOnMap(data.all_edges);
+                
+                // Display results using only building-to-building edges
+                let html = '<div class="path-result"><h4>🌳 Minimum Spanning Tree</h4>';
+                html += `<p class="algorithm-info">Algorithm: ${data.algorithm.toUpperCase()}</p>`;
+                
+                if (data.edges && data.edges.length > 0) {
+                    html += '<ul>';
+                    data.edges.forEach(edge => {
+                        html += `<li>${edge.node1} ↔ ${edge.node2} <span class="edge-weight">(${edge.weight}m)</span></li>`;
+                    });
+                    html += '</ul>';
+                    html += `<p class="distance">Direct Building Connections: ${data.buildings_connected_directly}</p>`;
+                    html += `<p class="distance">Total MST Weight: ${data.total_weight} meters</p>`;
+                    html += `<p style="font-size: 0.9rem; color: #7f8c8d;">Building Edges Weight: ${data.building_edges_weight}m</p>`;
+                } else {
+                    html += '<p>No direct building-to-building connections in MST.</p>';
+                    html += `<p class="distance">Total MST Weight (with paths): ${data.total_weight} meters</p>`;
+                }
+                
+                html += '</div>';
                 document.getElementById('output').innerHTML = html;
             }
         })
         .catch(error => {
             document.getElementById('output').innerHTML = `<p style="color: red;">Error: ${error}</p>`;
         });
+}
+
+// Store MST layer group globally
+let mstLayerGroup;
+
+function renderMSTOnMap(edges) {
+    // Create a feature group for MST edges
+    mstLayerGroup = L.featureGroup();
+    
+    edges.forEach(edge => {
+        // Draw lines for edges that have at least one coordinate
+        if (edge.coord1 && edge.coord2) {
+            const latlng1 = [edge.coord1[1], edge.coord1[0]]; // Convert [lon, lat] to [lat, lon]
+            const latlng2 = [edge.coord2[1], edge.coord2[0]];
+            
+            // Determine color based on edge type
+            const isDirectBuilding = edge.is_building_edge;
+            const lineColor = isDirectBuilding ? '#e74c3c' : '#e67e22';  // Red for direct, orange for path
+            const lineWeight = isDirectBuilding ? 4 : 2;
+            const dashArray = isDirectBuilding ? '5, 5' : '3, 3';
+            
+            // Draw MST edge line on map with distinctive styling
+            const line = L.polyline([latlng1, latlng2], {
+                color: lineColor,
+                weight: lineWeight,
+                opacity: 0.8,
+                dashArray: dashArray,
+                lineCap: 'round',
+                lineJoin: 'round'
+            }).bindPopup(`${edge.node1} ↔ ${edge.node2} (${edge.weight}m)`);
+            
+            mstLayerGroup.addLayer(line);
+        }
+    });
+    
+    // Add the feature group to the map
+    mstLayerGroup.addTo(map);
+}
+
+function clearMSTLayers() {
+    if (mstLayerGroup) {
+        map.removeLayer(mstLayerGroup);
+        mstLayerGroup = null;
+    }
 }
