@@ -81,8 +81,9 @@ function findPath() {
         return;
     }
     
-    // Clear previous MST visualization when finding a new path
+    // Clear previous visualizations (MST and path)
     clearMSTLayers();
+    clearPathLayers();
     
     document.getElementById('output').innerHTML = '<p>Finding path...</p>';
     
@@ -101,6 +102,9 @@ function findPath() {
         if (data.error) {
             document.getElementById('output').innerHTML = `<p style="color: red;">${data.error}</p>`;
         } else {
+            // Render shortest path on map
+            renderPathOnMap(data.path_edges, source, destination);
+            
             const pathHTML = `
                 <div class="path-result">
                     <h4>📍 Route Found!</h4>
@@ -117,10 +121,94 @@ function findPath() {
     });
 }
 
+// Store path layer group globally
+let pathLayerGroup;
+
+function renderPathOnMap(pathEdges, source, destination) {
+    // Create a feature group for shortest path edges
+    pathLayerGroup = L.featureGroup();
+    
+    // Draw the path edges
+    pathEdges.forEach((edge, index) => {
+        // Only draw lines if we have coordinates for both nodes
+        if (edge.coord1 && edge.coord2) {
+            const latlng1 = [edge.coord1[1], edge.coord1[0]]; // Convert [lon, lat] to [lat, lon]
+            const latlng2 = [edge.coord2[1], edge.coord2[0]];
+            
+            // Draw path edge line with bright blue color and solid line
+            const line = L.polyline([latlng1, latlng2], {
+                color: '#3498db',          // Bright blue for shortest path
+                weight: 5,
+                opacity: 0.9,
+                dashArray: null,           // Solid line
+                lineCap: 'round',
+                lineJoin: 'round'
+            }).bindPopup(`${edge.node1} → ${edge.node2}<br>Distance: ${edge.weight}m`);
+            
+            pathLayerGroup.addLayer(line);
+        }
+    });
+    
+    // Add start marker (green)
+    if (pathEdges.length > 0 && pathEdges[0].coord1) {
+        const startCoord = pathEdges[0].coord1;
+        const startMarker = L.circleMarker(
+            [startCoord[1], startCoord[0]],
+            {
+                radius: 8,
+                fillColor: '#27ae60',      // Green for start
+                color: '#fff',
+                weight: 2,
+                opacity: 1,
+                fillOpacity: 0.9
+            }
+        ).bindPopup(`<strong>START</strong><br>${source}`);
+        
+        pathLayerGroup.addLayer(startMarker);
+    }
+    
+    // Add end marker (red)
+    if (pathEdges.length > 0) {
+        const lastEdge = pathEdges[pathEdges.length - 1];
+        if (lastEdge.coord2) {
+            const endCoord = lastEdge.coord2;
+            const endMarker = L.circleMarker(
+                [endCoord[1], endCoord[0]],
+                {
+                    radius: 8,
+                    fillColor: '#e74c3c',       // Red for end
+                    color: '#fff',
+                    weight: 2,
+                    opacity: 1,
+                    fillOpacity: 0.9
+                }
+            ).bindPopup(`<strong>DESTINATION</strong><br>${destination}`);
+            
+            pathLayerGroup.addLayer(endMarker);
+        }
+    }
+    
+    // Add the feature group to the map
+    pathLayerGroup.addTo(map);
+    
+    // Fit map bounds to show entire path
+    if (pathLayerGroup.getBounds().isValid()) {
+        map.fitBounds(pathLayerGroup.getBounds(), { padding: [50, 50] });
+    }
+}
+
+function clearPathLayers() {
+    if (pathLayerGroup) {
+        map.removeLayer(pathLayerGroup);
+        pathLayerGroup = null;
+    }
+}
+
 function showMST() {
     document.getElementById('output').innerHTML = '<p>Generating Minimum Spanning Tree...</p>';
     
-    // Clear previous MST layers
+    // Clear previous visualizations (path and MST)
+    clearPathLayers();
     clearMSTLayers();
     
     fetch('/api/mst')

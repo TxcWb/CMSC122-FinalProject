@@ -98,6 +98,7 @@ def build_graph_from_geojson(geojson_data: dict) -> Tuple[Dict[str, List[Tuple[s
         return None
     # fetch and create node id if none
     coord_to_node = {}
+    node_coords = {}  # NEW: store coordinates for path nodes
     node_counter = 0
     def get_node_id(lon: float, lat: float) -> str:
         nonlocal node_counter
@@ -112,6 +113,7 @@ def build_graph_from_geojson(geojson_data: dict) -> Tuple[Dict[str, List[Tuple[s
             return coord_to_node[coord_key]
         node_id = f"node_{node_counter}"
         coord_to_node[coord_key] = node_id
+        node_coords[node_id] = (lon, lat)  # NEW: store original coordinates
         node_counter += 1
         return node_id
 
@@ -178,7 +180,11 @@ def build_graph_from_geojson(geojson_data: dict) -> Tuple[Dict[str, List[Tuple[s
                     graph[start_node].append((end_node, distance))
                     graph[end_node].append((start_node, distance))
 
-    return graph, buildings
+    # Combine buildings and path nodes for complete coordinate dict
+    all_coords = {**buildings, **node_coords}
+    
+    # Return graph, all coordinates, and building names set for distinction
+    return graph, all_coords, set(buildings.keys())
 
 # dijkstra's algorithm with min-heap optimization using graph adjacency list, source or starting node, and destination as args
 def dijkstra(graph: Dict[str, List[Tuple[str, float]]],
