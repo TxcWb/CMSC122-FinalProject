@@ -59,20 +59,133 @@
 # - Return MST edges and total weight
 
 # dijkstra
-import heapq
-import math
 from typing import Dict, List, Tuple, Optional, Set
+
+# custom minheap implementation for dijkstra optimization
+class MinHeap:
+    def __init__(self):
+        self.heap = []
+    #minheap common functions
+    def push(self, item: Tuple[float, str]) -> None:
+        self.heap.append(item)
+        self._bubble_up(len(self.heap) - 1)
+    def pop(self) -> Tuple[float, str]:
+        if len(self.heap) == 0:
+            raise IndexError("pop from empty heap")
+        if len(self.heap) == 1:
+            return self.heap.pop()
+        min_item = self.heap[0]
+        self.heap[0] = self.heap.pop()
+        self._bubble_down(0)
+        return min_item
+    
+    def __len__(self) -> int:
+        return len(self.heap)
+    def _bubble_up(self, index: int) -> None:
+        while index > 0:
+            parent_index = (index - 1) // 2
+            if self.heap[index] < self.heap[parent_index]:
+                self.heap[index], self.heap[parent_index] = self.heap[parent_index], self.heap[index]
+                index = parent_index
+            else:
+                break
+    def _bubble_down(self, index: int) -> None:
+        while True:
+            smallest = index
+            left_child = 2 * index + 1
+            right_child = 2 * index + 2
+            
+            if left_child < len(self.heap) and self.heap[left_child] < self.heap[smallest]:
+                smallest = left_child
+            if right_child < len(self.heap) and self.heap[right_child] < self.heap[smallest]:
+                smallest = right_child
+            
+            if smallest != index:
+                self.heap[index], self.heap[smallest] = self.heap[smallest], self.heap[index]
+                index = smallest
+            else:
+                break
+
+# manual math functions
+
+#convert degrees to radians
+def manual_radians(degrees: float) -> float:
+    pi = 3.141592653589793
+    return degrees * (pi / 180.0)
+
+# calc sine using taylor series approximation
+def manual_sin(x: float) -> float:
+    pi = 3.141592653589793
+    two_pi = 2 * pi
+    # normalize angle to [-pi, pi]
+    x = x % two_pi
+    if x > pi:
+        x = x - two_pi
+    # the taylor series
+    result = 0.0
+    term = x
+    for n in range(1, 20):
+        result += term
+        term *= -x * x / ((2 * n) * (2 * n + 1))
+    return result
+
+# calc cos using taylor series approximation
+def manual_cos(x: float) -> float:
+    pi = 3.141592653589793
+    two_pi = 2 * pi
+    # normalize angle to [-pi, pi]
+    x = x % two_pi
+    if x > pi:
+        x = x - two_pi
+    result = 1.0
+    term = 1.0
+    for n in range(1, 20):
+        term *= -x * x / ((2 * n - 1) * (2 * n))
+        result += term
+    return result
+
+# manual square_root
+def manual_sqrt(x: float) -> float:
+    if x < 0:
+        raise ValueError("Cannot take square root of negative number")
+    if x == 0:
+        return 0.0
+    # Newton's method: x_{n+1} = (x_n + x/x_n) / 2
+    guess = x
+    for _ in range(50):
+        next_guess = (guess + x / guess) / 2.0
+        if abs(next_guess - guess) < 1e-10:
+            break
+        guess = next_guess
+    
+    return guess
+
+def manual_asin(x: float) -> float:
+    """Calculate arcsine using Taylor series approximation"""
+    if x < -1 or x > 1:
+        raise ValueError("asin domain error")
+    result = 0.0
+    term = x
+    x_squared = x * x
+    for n in range(50):
+        result += term
+        term *= x_squared * (2.0 * n + 1) / (2.0 * n + 2)
+    return result
+
 # distance calc using haversine distance using args coord1 and coord2 to ret distance in meters
 def haversine_distance(coord1: Tuple[float, float], coord2: Tuple[float, float]) -> float:
     lon1, lat1 = coord1
     lon2, lat2 = coord2
-    lon1, lat1, lon2, lat2 = map(math.radians, [lon1, lat1, lon2, lat2])
+    lon1 = manual_radians(lon1)
+    lat1 = manual_radians(lat1)
+    lon2 = manual_radians(lon2)
+    lat2 = manual_radians(lat2)
 
-    # hversine formula
+    # haversine formula
     dlon = lon2 - lon1
     dlat = lat2 - lat1
-    a = math.sin(dlat/2)**2 + math.cos(lat1) * math.cos(lat2) * math.sin(dlon/2)**2
-    c = 2 * math.asin(math.sqrt(a))
+    a = manual_sin(dlat/2)**2 + manual_cos(lat1) * manual_cos(lat2) * manual_sin(dlon/2)**2
+    c = 2 * manual_asin(manual_sqrt(a))
 
     r = 6371000
     return c * r
@@ -196,11 +309,12 @@ def dijkstra(graph: Dict[str, List[Tuple[str, float]]],
     distances[source] = 0
 
     previous = {node: None for node in graph} # track previous node for path reconstruction
-    pq = [(0, source)] # prio queue: (distance, node)
+    pq = MinHeap() # custom priority queue: (distance, node)
+    pq.push((0, source))
     visited = set() # visited nodes tracker
 
-    while pq:
-        current_dist, current = heapq.heappop(pq)
+    while len(pq) > 0:
+        current_dist, current = pq.pop()
         # skip if already visited
         if current in visited:
             continue
@@ -221,7 +335,7 @@ def dijkstra(graph: Dict[str, List[Tuple[str, float]]],
             if distance < distances[neighbor]:
                 distances[neighbor] = distance
                 previous[neighbor] = current
-                heapq.heappush(pq, (distance, neighbor))
+                pq.push((distance, neighbor))
     # check if destination is reachable
     if distances[destination] == float('infinity'):
         return None, None
