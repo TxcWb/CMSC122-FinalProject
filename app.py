@@ -1,27 +1,21 @@
 from flask import Flask, render_template, request, jsonify
 import json
+import os
 from pathlib import Path
+from algorithms import dijkstra, build_graph_from_geojson
 
 app = Flask(__name__)
 
-# Load GeoJSON data
+#load geojson data
 def load_geojson():
     geojson_path = Path(__file__).parent / 'data' / 'campus_map.geojson'
     with open(geojson_path, 'r') as f:
         return json.load(f)
 
-# Extract buildings and graph from GeoJSON
+# extract buildings and graph from geojson
 geojson_data = load_geojson()
-buildings = []
-graph = {}
-
-# Extract building locations (Point features)
-for feature in geojson_data['features']:
-    if feature['geometry']['type'] == 'Point':
-        name = feature['properties'].get('Name', '')
-        if name:
-            buildings.append(name)
-            graph[name] = []
+graph, building_coords = build_graph_from_geojson(geojson_data)
+buildings = list(building_coords.keys())
 
 @app.route('/')
 def index():
@@ -31,44 +25,77 @@ def index():
 def get_buildings():
     return jsonify(buildings)
 
+@app.route('/api/graph-info')
+def graph_info():
+    building_nodes = [node for node in graph if node in building_coords]
+    path_nodes = [node for node in graph if node not in building_coords]
+
+    building_connections = {}
+    for building in building_nodes:
+        building_connections[building] = {
+            'total_connections': len(graph[building]),
+            'connected_to_buildings': sum(1 for n, _ in graph[building] if n in building_coords),
+            'connected_to_paths': sum(1 for n, _ in graph[building] if n not in building_coords),
+            'neighbors': [(n, round(d, 2)) for n, d in graph[building]]
+        }
+
+    return jsonify({
+        'total_nodes': len(graph),
+        'building_nodes': len(building_nodes),
+        'path_nodes': len(path_nodes),
+        'buildings': list(building_nodes),
+        'building_connections': building_connections
+    })
+
 @app.route('/api/shortest-path', methods=['POST'])
 def shortest_path():
     data = request.get_json()
     source = data.get('source')
     destination = data.get('destination')
-    
-    # Simple BFS for demo - replace with your Dijkstra implementation
+
+    # validate input
     if source not in buildings or destination not in buildings:
         return jsonify({'error': 'Invalid building selection'})
-    
-    # Dummy response - replace with actual algorithm
-    path = [source, "CSM Building", destination]
-    distance = 250
-    time = round(distance / 80, 1)  # 80m/min walking speed
-    
+
+    # use dijkstra's algorithm to find shortest path
+    full_path, distance = dijkstra(graph, source, destination)
+
+    # check if path exists
+    if full_path is None:
+        return jsonify({'error': 'No path found between the selected buildings'})
+
+    # filter path to show bldgs only and not the invisible path nodes (ayaw tanggali ples)
+    building_only_path = [node for node in full_path if node in building_coords]
+
+    # calculate walking time (assumption is 80 meters/minute walking speed)
+    time = round(distance / 80, 1)
+
     return jsonify({
-        'path': path,
-        'distance': distance,
+        'path': building_only_path, 
+        'full_path': full_path,
+        'distance': round(distance, 2),
         'time': time
     })
 
-@app.route('/api/mst')
-def mst():
-    # Dummy MST - replace with actual Kruskal or Prim
-    edges = [
-        ("Main Library", "CSM Building", 150),
-        ("CSM Building", "CAS Building", 100),
-        ("CAS Building", "Gymnasium", 180),
-        ("Gymnasium", "Canteen", 90),
-        ("Main Library", "Admin Building", 200),
-        ("Admin Building", "Student Center", 120)
-    ]
-    total = sum(e[2] for e in edges)
-    
-    return jsonify({
-        'edges': edges,
-        'total_weight': total
-    })
+# @app.route('/api/mst')
+# def mst():
+#     # Use Kruskal's algorithm by default
+#     # You can also add a query parameter to choose between Kruskal and Prim
+#     algorithm = request.args.get('algorithm', 'kruskal').lower()
+
+#     if algorithm == 'prim':
+#         mst_edges, total_weight = prim(graph)
+#     else:
+#         mst_edges, total_weight = kruskal(graph)
+
+#     # Format edges for JSON response
+#     edges = [(edge[0], edge[1], round(edge[2], 2)) for edge in mst_edges]
+
+#     return jsonify({
+#         'edges': edges,
+#         'total_weight': round(total_weight, 2),
+#         'algorithm': algorithm
+#     })
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
