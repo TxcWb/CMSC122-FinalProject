@@ -43,15 +43,24 @@ function initMap() {
 function loadBuildings() {
     fetch('/api/buildings')
         .then(response => response.json())
-        .then(buildings => {
+        .then(data => {
             const sourceSelect = document.getElementById('source');
             const destSelect = document.getElementById('destination');
-            
-            buildings.forEach(building => {
-                // Add to dropdowns
-                sourceSelect.innerHTML += `<option value="${building}">${building}</option>`;
-                destSelect.innerHTML += `<option value="${building}">${building}</option>`;
+            // add main bldg group
+            let mainGroup = '<optgroup label="(Main Buildings)">';
+            data.main.forEach(building => {
+                mainGroup += `<option value="${building}">${building}</option>`;
             });
+            mainGroup += '</optgroup>';
+            // others group
+            let othersGroup = '<optgroup label="(Others)">';
+            data.others.forEach(building => {
+                othersGroup += `<option value="${building}">${building}</option>`;
+            });
+            othersGroup += '</optgroup>';
+            //add both dropdowns
+            sourceSelect.innerHTML += mainGroup + othersGroup;
+            destSelect.innerHTML += mainGroup + othersGroup;
         })
         .catch(error => {
             document.getElementById('output').innerHTML = `<p style="color: red;">Error loading buildings: ${error}</p>`;

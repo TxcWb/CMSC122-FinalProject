@@ -23,7 +23,28 @@ def index():
 
 @app.route('/api/buildings')
 def get_buildings():
-    return jsonify(buildings)
+    # defiine main bldgs in the campus
+    main_buildings = [
+        'CHSS - Admin Building',
+        'School of Management Building',
+        'Cultural Complex Center',
+        'CARIM Building',
+        'CSM Building',
+        'Kalimudan / Student Center Lane',
+        'EBL Dorm',
+        'Library',
+        'Training Gym',
+        'Sports Complex Stadium'
+    ]
+
+    main = [b for b in main_buildings if b in buildings]
+    others = sorted([b for b in buildings if b not in main_buildings])
+
+    return jsonify({
+        'main': main,
+        'others': others,
+        'all': buildings
+    })
 
 @app.route('/api/graph-info')
 def graph_info():
