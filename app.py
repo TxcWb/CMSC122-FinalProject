@@ -2,7 +2,7 @@ from flask import Flask, render_template, request, jsonify
 import json
 import os
 from pathlib import Path
-from algorithms import dijkstra, build_graph_from_geojson
+from algorithms import dijkstra, build_graph_from_geojson, kruskal, prim
 
 app = Flask(__name__)
 
@@ -98,25 +98,62 @@ def shortest_path():
         'time': time
     })
 
-# @app.route('/api/mst')
-# def mst():
-#     # Use Kruskal's algorithm by default
-#     # You can also add a query parameter to choose between Kruskal and Prim
-#     algorithm = request.args.get('algorithm', 'kruskal').lower()
+@app.route('/api/mst')
+def mst():
+    # Use Kruskal's algorithm by default
+    # You can also add a query parameter to choose between Kruskal and Prim
+    algorithm = request.args.get('algorithm', 'kruskal').lower()
 
-#     if algorithm == 'prim':
-#         mst_edges, total_weight = prim(graph)
-#     else:
-#         mst_edges, total_weight = kruskal(graph)
+    if algorithm == 'prim':
+        mst_edges, total_weight = prim(graph)
+    else:
+        mst_edges, total_weight = kruskal(graph)
 
-#     # Format edges for JSON response
-#     edges = [(edge[0], edge[1], round(edge[2], 2)) for edge in mst_edges]
+    # Separate edges: those with building nodes and those with path nodes
+    # For display, we only show building-to-building edges
+    # For visualization, we show all edges that can be rendered
+    
+    all_edges_with_coords = []
+    building_edges = []
+    
+    for edge in mst_edges:
+        node1, node2, weight = edge
+        
+        # Check if both nodes are buildings
+        is_node1_building = node1 in building_coords
+        is_node2_building = node2 in building_coords
+        
+        # Get coordinates
+        coord1 = building_coords[node1] if is_node1_building else None
+        coord2 = building_coords[node2] if is_node2_building else None
+        
+        edge_data = {
+            'node1': node1,
+            'node2': node2,
+            'weight': round(weight, 2),
+            'coord1': coord1,
+            'coord2': coord2,
+            'is_building_edge': is_node1_building and is_node2_building
+        }
+        
+        all_edges_with_coords.append(edge_data)
+        
+        # Add to building_edges if both endpoints are buildings
+        if is_node1_building and is_node2_building:
+            building_edges.append(edge_data)
 
-#     return jsonify({
-#         'edges': edges,
-#         'total_weight': round(total_weight, 2),
-#         'algorithm': algorithm
-#     })
+    # Calculate total weight for building-to-building edges only
+    building_edges_weight = sum(e['weight'] for e in building_edges)
+
+    return jsonify({
+        'edges': building_edges,  # Only building-to-building for display
+        'all_edges': all_edges_with_coords,  # All edges for complete map visualization
+        'total_weight': round(total_weight, 2),  # Total MST weight (includes path nodes)
+        'building_edges_weight': round(building_edges_weight, 2),  # Weight of building edges
+        'algorithm': algorithm,
+        'num_buildings': len(building_coords),
+        'buildings_connected_directly': len(building_edges)
+    })
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)

@@ -235,3 +235,177 @@ def dijkstra(graph: Dict[str, List[Tuple[str, float]]],
     path.reverse()
 
     return path, distances[destination]
+
+
+# Union-Find (Disjoint Set) class for Kruskal's algorithm
+class UnionFind:
+    """Union-Find data structure for cycle detection in MST algorithms."""
+    
+    def __init__(self, nodes: List[str]):
+        """Initialize Union-Find with all nodes."""
+        self.parent = {node: node for node in nodes}
+        self.rank = {node: 0 for node in nodes}
+    
+    def find(self, node: str) -> str:
+        """
+        Find the root parent of a node with path compression.
+        
+        Args:
+            node: The node to find the root of
+            
+        Returns:
+            The root parent of the node
+        """
+        if self.parent[node] != node:
+            self.parent[node] = self.find(self.parent[node])  # Path compression
+        return self.parent[node]
+    
+    def union(self, node1: str, node2: str) -> bool:
+        """
+        Union two nodes' sets using union by rank.
+        
+        Args:
+            node1: First node
+            node2: Second node
+            
+        Returns:
+            True if union was performed, False if nodes were already in same set
+        """
+        root1 = self.find(node1)
+        root2 = self.find(node2)
+        
+        # Already in same set (would create a cycle)
+        if root1 == root2:
+            return False
+        
+        # Union by rank: attach smaller rank tree under larger rank tree
+        if self.rank[root1] < self.rank[root2]:
+            self.parent[root1] = root2
+        elif self.rank[root1] > self.rank[root2]:
+            self.parent[root2] = root1
+        else:
+            self.parent[root2] = root1
+            self.rank[root1] += 1
+        
+        return True
+
+
+# Kruskal's Algorithm for MST
+def kruskal(graph: Dict[str, List[Tuple[str, float]]]) -> Tuple[List[Tuple[str, str, float]], float]:
+    """
+    Find Minimum Spanning Tree using Kruskal's algorithm.
+    
+    Uses Union-Find to detect cycles and build MST by selecting edges in order of increasing weight.
+    Time Complexity: O(E log E) where E is number of edges
+    
+    Args:
+        graph: Adjacency list representation of the graph
+        
+    Returns:
+        Tuple of (mst_edges, total_weight) where:
+        - mst_edges: List of (node1, node2, weight) tuples in the MST
+        - total_weight: Sum of all edge weights in the MST
+    """
+    if not graph:
+        return [], 0.0
+    
+    # Extract all unique edges from the graph (adjacency list)
+    edges = []
+    visited_edges = set()
+    
+    for node in graph:
+        for neighbor, weight in graph[node]:
+            # Create canonical edge representation to avoid duplicates
+            edge_key = tuple(sorted([node, neighbor]))
+            if edge_key not in visited_edges:
+                edges.append((weight, node, neighbor))
+                visited_edges.add(edge_key)
+    
+    # Sort edges by weight (ascending)
+    edges.sort(key=lambda x: x[0])
+    
+    # Initialize Union-Find with all nodes
+    uf = UnionFind(list(graph.keys()))
+    
+    # Build MST by adding edges that don't create cycles
+    mst_edges = []
+    total_weight = 0.0
+    
+    for weight, node1, node2 in edges:
+        # If nodes are not already connected, add this edge to MST
+        if uf.union(node1, node2):
+            mst_edges.append((node1, node2, weight))
+            total_weight += weight
+            
+            # Early termination: MST complete when we have n-1 edges for n nodes
+            if len(mst_edges) == len(graph) - 1:
+                break
+    
+    return mst_edges, total_weight
+
+
+# Prim's Algorithm for MST
+def prim(graph: Dict[str, List[Tuple[str, float]]], start_node: str = None) -> Tuple[List[Tuple[str, str, float]], float]:
+    """
+    Find Minimum Spanning Tree using Prim's algorithm.
+    
+    Builds MST by greedily selecting minimum weight edges from visited vertices.
+    Time Complexity: O(E log V) where V is vertices and E is edges
+    
+    Args:
+        graph: Adjacency list representation of the graph
+        start_node: Starting vertex for MST (defaults to first node if not specified)
+        
+    Returns:
+        Tuple of (mst_edges, total_weight) where:
+        - mst_edges: List of (node1, node2, weight) tuples in the MST
+        - total_weight: Sum of all edge weights in the MST
+    """
+    if not graph:
+        return [], 0.0
+    
+    # Use provided start node or default to first node
+    if start_node is None:
+        start_node = next(iter(graph))
+    
+    if start_node not in graph:
+        return [], 0.0
+    
+    # Track visited nodes and MST edges
+    visited = {start_node}
+    mst_edges = []
+    total_weight = 0.0
+    
+    # Priority queue of available edges: (weight, from_node, to_node)
+    # We manually implement priority queue behavior without heapq
+    available_edges = []
+    
+    # Add all edges from start node to available edges
+    for neighbor, weight in graph[start_node]:
+        available_edges.append((weight, start_node, neighbor))
+    
+    # Process edges until MST is complete
+    while available_edges and len(visited) < len(graph):
+        # Find minimum weight edge
+        min_idx = 0
+        for i in range(1, len(available_edges)):
+            if available_edges[i][0] < available_edges[min_idx][0]:
+                min_idx = i
+        
+        weight, from_node, to_node = available_edges.pop(min_idx)
+        
+        # Skip if destination already visited (would create cycle)
+        if to_node in visited:
+            continue
+        
+        # Add edge to MST
+        visited.add(to_node)
+        mst_edges.append((from_node, to_node, weight))
+        total_weight += weight
+        
+        # Add all edges from newly visited node
+        for neighbor, weight in graph[to_node]:
+            if neighbor not in visited:
+                available_edges.append((weight, to_node, neighbor))
+    
+    return mst_edges, total_weight
