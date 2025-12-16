@@ -32,7 +32,7 @@ function fetchBuildingInfo(buildingName, marker) {
         })
         .catch(error => {
             console.error('Error fetching building info:', error);
-            marker.setPopupContent(`<strong>${buildingName}</strong><br><em>Error loading details</em>`);
+            marker.setPopupContent(`<strong>${buildingName}</strong><br><em>No details available</em>`);
             marker.openPopup();
         });
 }
