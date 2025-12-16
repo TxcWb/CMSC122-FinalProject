@@ -145,4 +145,6 @@ if __name__ == "__main__":
         if extra_info:  # Only add buildings that are not excluded (e.g., intersections)
             table.add(building_name, coordinates, extra_info)
 
+    # Fetch a building record
+    table.display_building("CHSS - Admin Building")
     
