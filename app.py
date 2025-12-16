@@ -104,7 +104,7 @@ def shortest_path():
         return jsonify({'error': 'No path found between the selected buildings'})
 
     # filter path to show bldgs only and not the invisible path nodes (ayaw tanggali ples)
-    building_only_path = [node for node in full_path if node in building_coords]
+    building_only_path = [node for node in full_path if node in building_names]
 
     # calculate walking time (assumption is 80 meters/minute walking speed)
     time = round(distance / 80, 1)
