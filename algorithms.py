@@ -61,67 +61,52 @@
 # dijkstra
 from typing import Dict, List, Tuple, Optional, Set
 
-# custom minheap implementation for dijkstra optimization
+# --- [Existing MinHeap class remains the same] ---
 class MinHeap:
     def __init__(self):
         self.heap = []
-    #minheap common functions
     def push(self, item: Tuple[float, str]) -> None:
         self.heap.append(item)
         self._bubble_up(len(self.heap) - 1)
     def pop(self) -> Tuple[float, str]:
-        if len(self.heap) == 0:
-            raise IndexError("pop from empty heap")
-        if len(self.heap) == 1:
-            return self.heap.pop()
+        if len(self.heap) == 0: raise IndexError("pop from empty heap")
+        if len(self.heap) == 1: return self.heap.pop()
         min_item = self.heap[0]
         self.heap[0] = self.heap.pop()
         self._bubble_down(0)
         return min_item
-    
-    def __len__(self) -> int:
-        return len(self.heap)
+    def __len__(self) -> int: return len(self.heap)
     def _bubble_up(self, index: int) -> None:
         while index > 0:
             parent_index = (index - 1) // 2
             if self.heap[index] < self.heap[parent_index]:
                 self.heap[index], self.heap[parent_index] = self.heap[parent_index], self.heap[index]
                 index = parent_index
-            else:
-                break
+            else: break
     def _bubble_down(self, index: int) -> None:
         while True:
             smallest = index
             left_child = 2 * index + 1
             right_child = 2 * index + 2
-            
             if left_child < len(self.heap) and self.heap[left_child] < self.heap[smallest]:
                 smallest = left_child
             if right_child < len(self.heap) and self.heap[right_child] < self.heap[smallest]:
                 smallest = right_child
-            
             if smallest != index:
                 self.heap[index], self.heap[smallest] = self.heap[smallest], self.heap[index]
                 index = smallest
-            else:
-                break
+            else: break
 
-# manual math functions
-
-#convert degrees to radians
+# --- [Math functions remain the same] ---
 def manual_radians(degrees: float) -> float:
     pi = 3.141592653589793
     return degrees * (pi / 180.0)
 
-# calc sine using taylor series approximation
 def manual_sin(x: float) -> float:
     pi = 3.141592653589793
     two_pi = 2 * pi
-    # normalize angle to [-pi, pi]
     x = x % two_pi
-    if x > pi:
-        x = x - two_pi
-    # the taylor series
+    if x > pi: x = x - two_pi
     result = 0.0
     term = x
     for n in range(1, 20):
@@ -129,14 +114,11 @@ def manual_sin(x: float) -> float:
         term *= -x * x / ((2 * n) * (2 * n + 1))
     return result
 
-# calc cos using taylor series approximation
 def manual_cos(x: float) -> float:
     pi = 3.141592653589793
     two_pi = 2 * pi
-    # normalize angle to [-pi, pi]
     x = x % two_pi
-    if x > pi:
-        x = x - two_pi
+    if x > pi: x = x - two_pi
     result = 1.0
     term = 1.0
     for n in range(1, 20):
@@ -144,26 +126,18 @@ def manual_cos(x: float) -> float:
         result += term
     return result
 
-# manual square_root
 def manual_sqrt(x: float) -> float:
-    if x < 0:
-        raise ValueError("Cannot take square root of negative number")
-    if x == 0:
-        return 0.0
-    # Newton's method: x_{n+1} = (x_n + x/x_n) / 2
+    if x < 0: raise ValueError("Cannot take square root of negative number")
+    if x == 0: return 0.0
     guess = x
     for _ in range(50):
         next_guess = (guess + x / guess) / 2.0
-        if abs(next_guess - guess) < 1e-10:
-            break
+        if abs(next_guess - guess) < 1e-10: break
         guess = next_guess
-    
     return guess
 
 def manual_asin(x: float) -> float:
-    """Calculate arcsine using Taylor series approximation"""
-    if x < -1 or x > 1:
-        raise ValueError("asin domain error")
+    if x < -1 or x > 1: raise ValueError("asin domain error")
     result = 0.0
     term = x
     x_squared = x * x
@@ -172,360 +146,261 @@ def manual_asin(x: float) -> float:
         term *= x_squared * (2.0 * n + 1) / (2.0 * n + 2)
     return result
 
-# distance calc using haversine distance using args coord1 and coord2 to ret distance in meters
 def haversine_distance(coord1: Tuple[float, float], coord2: Tuple[float, float]) -> float:
     lon1, lat1 = coord1
     lon2, lat2 = coord2
-    lon1 = manual_radians(lon1)
-    lat1 = manual_radians(lat1)
-    lon2 = manual_radians(lon2)
-    lat2 = manual_radians(lat2)
-
-    # haversine formula
+    lon1 = manual_radians(lon1); lat1 = manual_radians(lat1)
+    lon2 = manual_radians(lon2); lat2 = manual_radians(lat2)
     dlon = lon2 - lon1
     dlat = lat2 - lat1
     a = manual_sin(dlat/2)**2 + manual_cos(lat1) * manual_cos(lat2) * manual_sin(dlon/2)**2
     c = 2 * manual_asin(manual_sqrt(a))
-
     r = 6371000
     return c * r
 
-
-#weighted graph building in geojson using multilinestring pathways where bldgs are positioned on the pathway coorsd
-
-def build_graph_from_geojson(geojson_data: dict) -> Tuple[Dict[str, List[Tuple[str, float]]], Dict[str, Tuple[float, float]]]:
-    # extract all bldgs and their coordds
+# --- [Updated Graph Builder with Robust Snapping] ---
+def build_graph_from_geojson(geojson_data: dict) -> Tuple[Dict[str, List[Tuple[str, float]]], Dict[str, Tuple[float, float]], Set[str]]:
     buildings = {}
+    
+    # 1. Extract Buildings
     for feature in geojson_data['features']:
         if feature['geometry']['type'] == 'Point':
             name = feature['properties'].get('Name', '')
             if name and name != 'Campus Pathways':
                 coords = feature['geometry']['coordinates']
-                buildings[name] = (coords[0], coords[1])  # (lon, lat)
-    #idenitfy bldg name of the node
+                buildings[name] = (coords[0], coords[1])
+
+    # Helper to find node IDs
+    coord_to_node = {}
+    node_coords = {}
+    node_counter = 0
+
     def get_building_at_coord(lon: float, lat: float) -> Optional[str]:
-        TOLERANCE = 0.0000001  # Very small tolerance for coordinate matching
+        TOLERANCE = 0.0000001
         for building_name, (b_lon, b_lat) in buildings.items():
             if abs(lon - b_lon) < TOLERANCE and abs(lat - b_lat) < TOLERANCE:
                 return building_name
         return None
-    # fetch and create node id if none
-    coord_to_node = {}
-    node_coords = {}  # NEW: store coordinates for path nodes
-    node_counter = 0
+
     def get_node_id(lon: float, lat: float) -> str:
         nonlocal node_counter
-        # bldg checker if theres bldg in this coord
         building_name = get_building_at_coord(lon, lat)
-        if building_name:
-            return building_name
-        # round coords
+        if building_name: return building_name
+        
         coord_key = (round(lon, 8), round(lat, 8))
-        # check if there's created node for this already
-        if coord_key in coord_to_node:
-            return coord_to_node[coord_key]
+        if coord_key in coord_to_node: return coord_to_node[coord_key]
+        
         node_id = f"node_{node_counter}"
         coord_to_node[coord_key] = node_id
-        node_coords[node_id] = (lon, lat)  # NEW: store original coordinates
+        node_coords[node_id] = (lon, lat)
         node_counter += 1
         return node_id
 
-    # build weighted graph from multilinestring pathways using adjacnecy list
     graph = {}
-
-    #process all features to find multilinestring and linestirng
-    for feature in geojson_data['features']:
-        geom_type = feature['geometry']['type']
-
-        if geom_type == 'MultiLineString':
-            line_list = feature['geometry']['coordinates']
-
-            for line_coords in line_list:
-                for i in range(len(line_coords) - 1):
-                    start_lon, start_lat = line_coords[i][0], line_coords[i][1]
-                    end_lon, end_lat = line_coords[i + 1][0], line_coords[i + 1][1]
-                    start_node = get_node_id(start_lon, start_lat)
-                    end_node = get_node_id(end_lon, end_lat)
-                    # distance calcs
-                    distance = haversine_distance(
-                        (start_lon, start_lat),
-                        (end_lon, end_lat)
-                    )
-                    #init start and end node
-                    if start_node not in graph:
-                        graph[start_node] = []
-                    if end_node not in graph:
-                        graph[end_node] = []
-                    #bidirectional edges
-                    edge_exists = False
-                    for neighbor, dist in graph[start_node]:
-                        if neighbor == end_node and abs(dist - distance) < 0.001:
-                            edge_exists = True
-                            break
-                    if not edge_exists:
-                        graph[start_node].append((end_node, distance))
-                        graph[end_node].append((start_node, distance))
-
-        elif geom_type == 'LineString':
-            line_coords = feature['geometry']['coordinates']
-            for i in range(len(line_coords) - 1):
-                start_lon, start_lat = line_coords[i][0], line_coords[i][1]
-                end_lon, end_lat = line_coords[i + 1][0], line_coords[i + 1][1]
-                start_node = get_node_id(start_lon, start_lat)
-                end_node = get_node_id(end_lon, end_lat)
-                distance = haversine_distance(
-                    (start_lon, start_lat),
-                    (end_lon, end_lat)
-                )
-
-                if start_node not in graph:
-                    graph[start_node] = []
-                if end_node not in graph:
-                    graph[end_node] = []
-
-                edge_exists = False
-                for neighbor, dist in graph[start_node]:
-                    if neighbor == end_node and abs(dist - distance) < 0.001:
-                        edge_exists = True
-                        break
-
-                if not edge_exists:
-                    graph[start_node].append((end_node, distance))
-                    graph[end_node].append((start_node, distance))
-
-    # Combine buildings and path nodes for complete coordinate dict
-    all_coords = {**buildings, **node_coords}
     
-    # Return graph, all coordinates, and building names set for distinction
+    # 2. Build Graph from Lines
+    for feature in geojson_data['features']:
+        geom = feature['geometry']
+        lines = []
+        if geom['type'] == 'LineString':
+            lines = [geom['coordinates']]
+        elif geom['type'] == 'MultiLineString':
+            lines = geom['coordinates']
+            
+        for coords in lines:
+            for i in range(len(coords) - 1):
+                start = coords[i]
+                end = coords[i+1]
+                u = get_node_id(start[0], start[1])
+                v = get_node_id(end[0], end[1])
+                dist = haversine_distance(start, end)
+                
+                if u not in graph: graph[u] = []
+                if v not in graph: graph[v] = []
+                
+                # Check for existing edge to prevent duplicates
+                if not any(neighbor == v for neighbor, _ in graph[u]):
+                    graph[u].append((v, dist))
+                    graph[v].append((u, dist))
+
+    # 3. Snap Floating Buildings to Nearest Road Node
+    path_nodes = [n for n in graph.keys() if n not in buildings]
+    for b_name, b_coords in buildings.items():
+        if b_name in graph and len(graph[b_name]) > 0: continue
+        
+        nearest = None
+        min_dist = float('inf')
+        
+        for p_node in path_nodes:
+            p_coords = node_coords.get(p_node) or buildings.get(p_node)
+            if p_coords:
+                d = haversine_distance(b_coords, p_coords)
+                if d < min_dist:
+                    min_dist = d
+                    nearest = p_node
+        
+        # Snap if within 100m
+        if nearest and min_dist < 100.0:
+            if b_name not in graph: graph[b_name] = []
+            graph[b_name].append((nearest, min_dist))
+            graph[nearest].append((b_name, min_dist))
+
+    all_coords = {**buildings, **node_coords}
     return graph, all_coords, set(buildings.keys())
 
-# dijkstra's algorithm with min-heap optimization using graph adjacency list, source or starting node, and destination as args
-def dijkstra(graph: Dict[str, List[Tuple[str, float]]],
-             source: str,
-             destination: str) -> Tuple[Optional[List[str]], Optional[float]]:
-    # input validation
-    if source not in graph:
-        return None, None
-    if destination not in graph:
-        return None, None
-    if source == destination:
-        return [source], 0.0
-    # init distances to infinity for all nodes
-    distances = {node: float('infinity') for node in graph}
+# --- [Dijkstra (unchanged)] ---
+def dijkstra(graph, source, destination):
+    if source not in graph or destination not in graph: return None, None
+    if source == destination: return [source], 0.0
+    
+    distances = {node: float('inf') for node in graph}
     distances[source] = 0
-
-    previous = {node: None for node in graph} # track previous node for path reconstruction
-    pq = MinHeap() # custom priority queue: (distance, node)
+    previous = {node: None for node in graph}
+    pq = MinHeap()
     pq.push((0, source))
-    visited = set() # visited nodes tracker
+    visited = set()
 
     while len(pq) > 0:
-        current_dist, current = pq.pop()
-        # skip if already visited
-        if current in visited:
-            continue
-        visited.add(current)
-        #stop when we reach destination
-        if current == destination:
-            break
-        # skip if we found a better path
-        if current_dist > distances[current]:
-            continue
-        # check all neighbors
-        for neighbor, weight in graph[current]:
-            if neighbor in visited:
-                continue
-            # calculate tentative distance
-            distance = current_dist + weight
-            # update if we found a shorter path
-            if distance < distances[neighbor]:
-                distances[neighbor] = distance
-                previous[neighbor] = current
-                pq.push((distance, neighbor))
-    # check if destination is reachable
-    if distances[destination] == float('infinity'):
-        return None, None
-    # reconstruct path from end to start
+        d, u = pq.pop()
+        if u in visited: continue
+        visited.add(u)
+        if u == destination: break
+        if d > distances[u]: continue
+        
+        for v, weight in graph[u]:
+            if v in visited: continue
+            new_dist = d + weight
+            if new_dist < distances[v]:
+                distances[v] = new_dist
+                previous[v] = u
+                pq.push((new_dist, v))
+                
+    if distances[destination] == float('inf'): return None, None
+    
     path = []
-    current = destination
-    while current is not None:
-        path.append(current)
-        current = previous[current]
-    # Reverse to get path from source to destination
-    path.reverse()
+    curr = destination
+    while curr:
+        path.append(curr)
+        curr = previous[curr]
+    return path[::-1], distances[destination]
 
-    return path, distances[destination]
+# --- [New Pruning Logic] ---
+def prune_mst(mst_edges: List[Tuple[str, str, float]], building_names: Set[str]) -> List[Tuple[str, str, float]]:
+    """
+    Removes 'fringe paths': edges that lead to a dead-end node that is NOT a building.
+    Repeats until no such nodes exist.
+    """
+    # Build adjacency for the MST
+    adj = {}
+    for u, v, w in mst_edges:
+        if u not in adj: adj[u] = []
+        if v not in adj: adj[v] = []
+        adj[u].append(v)
+        adj[v].append(u)
+        
+    changed = True
+    while changed:
+        changed = False
+        nodes_to_remove = []
+        
+        # Identify non-building leaves
+        for node in list(adj.keys()):
+            # Degree 1 means it's a leaf (dead end)
+            if len(adj[node]) == 1 and node not in building_names:
+                nodes_to_remove.append(node)
+        
+        if nodes_to_remove:
+            changed = True
+            for node in nodes_to_remove:
+                neighbor = adj[node][0]
+                adj[neighbor].remove(node)
+                del adj[node]
+                
+    # Reconstruct edge list
+    pruned = []
+    seen = set()
+    for u in adj:
+        for v in adj[u]:
+            edge_key = tuple(sorted((u, v)))
+            if edge_key not in seen:
+                # Find original weight
+                weight = 0
+                for ou, ov, ow in mst_edges:
+                    if (ou == u and ov == v) or (ou == v and ov == u):
+                        weight = ow
+                        break
+                pruned.append((u, v, weight))
+                seen.add(edge_key)
+    return pruned
 
-
-# Union-Find (Disjoint Set) class for Kruskal's algorithm
+# --- [Updated MST Functions] ---
 class UnionFind:
-    """Union-Find data structure for cycle detection in MST algorithms."""
-    
-    def __init__(self, nodes: List[str]):
-        """Initialize Union-Find with all nodes."""
-        self.parent = {node: node for node in nodes}
-        self.rank = {node: 0 for node in nodes}
-    
-    def find(self, node: str) -> str:
-        """
-        Find the root parent of a node with path compression.
-        
-        Args:
-            node: The node to find the root of
-            
-        Returns:
-            The root parent of the node
-        """
-        if self.parent[node] != node:
-            self.parent[node] = self.find(self.parent[node])  # Path compression
-        return self.parent[node]
-    
-    def union(self, node1: str, node2: str) -> bool:
-        """
-        Union two nodes' sets using union by rank.
-        
-        Args:
-            node1: First node
-            node2: Second node
-            
-        Returns:
-            True if union was performed, False if nodes were already in same set
-        """
-        root1 = self.find(node1)
-        root2 = self.find(node2)
-        
-        # Already in same set (would create a cycle)
-        if root1 == root2:
-            return False
-        
-        # Union by rank: attach smaller rank tree under larger rank tree
-        if self.rank[root1] < self.rank[root2]:
-            self.parent[root1] = root2
-        elif self.rank[root1] > self.rank[root2]:
-            self.parent[root2] = root1
+    def __init__(self, nodes):
+        self.parent = {n: n for n in nodes}
+        self.rank = {n: 0 for n in nodes}
+    def find(self, n):
+        if self.parent[n] != n: self.parent[n] = self.find(self.parent[n])
+        return self.parent[n]
+    def union(self, n1, n2):
+        r1, r2 = self.find(n1), self.find(n2)
+        if r1 == r2: return False
+        if self.rank[r1] < self.rank[r2]: self.parent[r1] = r2
+        elif self.rank[r1] > self.rank[r2]: self.parent[r2] = r1
         else:
-            self.parent[root2] = root1
-            self.rank[root1] += 1
-        
+            self.parent[r2] = r1
+            self.rank[r1] += 1
         return True
 
-
-# Kruskal's Algorithm for MST
-def kruskal(graph: Dict[str, List[Tuple[str, float]]]) -> Tuple[List[Tuple[str, str, float]], float]:
-    """
-    Find Minimum Spanning Tree using Kruskal's algorithm.
-    
-    Uses Union-Find to detect cycles and build MST by selecting edges in order of increasing weight.
-    Time Complexity: O(E log E) where E is number of edges
-    
-    Args:
-        graph: Adjacency list representation of the graph
-        
-    Returns:
-        Tuple of (mst_edges, total_weight) where:
-        - mst_edges: List of (node1, node2, weight) tuples in the MST
-        - total_weight: Sum of all edge weights in the MST
-    """
-    if not graph:
-        return [], 0.0
-    
-    # Extract all unique edges from the graph (adjacency list)
+def kruskal(graph, building_names):
+    if not graph: return [], 0.0
     edges = []
-    visited_edges = set()
+    seen = set()
+    for u in graph:
+        for v, w in graph[u]:
+            key = tuple(sorted((u, v)))
+            if key not in seen:
+                edges.append((w, u, v))
+                seen.add(key)
+    edges.sort()
     
-    for node in graph:
-        for neighbor, weight in graph[node]:
-            # Create canonical edge representation to avoid duplicates
-            edge_key = tuple(sorted([node, neighbor]))
-            if edge_key not in visited_edges:
-                edges.append((weight, node, neighbor))
-                visited_edges.add(edge_key)
-    
-    # Sort edges by weight (ascending)
-    edges.sort(key=lambda x: x[0])
-    
-    # Initialize Union-Find with all nodes
     uf = UnionFind(list(graph.keys()))
-    
-    # Build MST by adding edges that don't create cycles
     mst_edges = []
-    total_weight = 0.0
     
-    for weight, node1, node2 in edges:
-        # If nodes are not already connected, add this edge to MST
-        if uf.union(node1, node2):
-            mst_edges.append((node1, node2, weight))
-            total_weight += weight
+    for w, u, v in edges:
+        if uf.union(u, v):
+            mst_edges.append((u, v, w))
             
-            # Early termination: MST complete when we have n-1 edges for n nodes
-            if len(mst_edges) == len(graph) - 1:
-                break
-    
-    return mst_edges, total_weight
+    # PRUNE THE RESULT
+    final_edges = prune_mst(mst_edges, building_names)
+    total_weight = sum(w for _, _, w in final_edges)
+    return final_edges, total_weight
 
-
-# Prim's Algorithm for MST
-def prim(graph: Dict[str, List[Tuple[str, float]]], start_node: str = None) -> Tuple[List[Tuple[str, str, float]], float]:
-    """
-    Find Minimum Spanning Tree using Prim's algorithm.
+def prim(graph, building_names, start_node=None):
+    if not graph: return [], 0.0
+    if start_node is None: start_node = next(iter(graph))
     
-    Builds MST by greedily selecting minimum weight edges from visited vertices.
-    Time Complexity: O(E log V) where V is vertices and E is edges
-    
-    Args:
-        graph: Adjacency list representation of the graph
-        start_node: Starting vertex for MST (defaults to first node if not specified)
-        
-    Returns:
-        Tuple of (mst_edges, total_weight) where:
-        - mst_edges: List of (node1, node2, weight) tuples in the MST
-        - total_weight: Sum of all edge weights in the MST
-    """
-    if not graph:
-        return [], 0.0
-    
-    # Use provided start node or default to first node
-    if start_node is None:
-        start_node = next(iter(graph))
-    
-    if start_node not in graph:
-        return [], 0.0
-    
-    # Track visited nodes and MST edges
     visited = {start_node}
     mst_edges = []
-    total_weight = 0.0
+    edges = []
     
-    # Priority queue of available edges: (weight, from_node, to_node)
-    # We manually implement priority queue behavior without heapq
-    available_edges = []
-    
-    # Add all edges from start node to available edges
-    for neighbor, weight in graph[start_node]:
-        available_edges.append((weight, start_node, neighbor))
-    
-    # Process edges until MST is complete
-    while available_edges and len(visited) < len(graph):
-        # Find minimum weight edge
-        min_idx = 0
-        for i in range(1, len(available_edges)):
-            if available_edges[i][0] < available_edges[min_idx][0]:
-                min_idx = i
+    for v, w in graph[start_node]:
+        edges.append((w, start_node, v))
         
-        weight, from_node, to_node = available_edges.pop(min_idx)
+    while edges and len(visited) < len(graph):
+        # Manual min extract (replace with heap in prod)
+        edges.sort(key=lambda x: x[0])
+        w, u, v = edges.pop(0)
         
-        # Skip if destination already visited (would create cycle)
-        if to_node in visited:
-            continue
+        if v in visited: continue
         
-        # Add edge to MST
-        visited.add(to_node)
-        mst_edges.append((from_node, to_node, weight))
-        total_weight += weight
+        visited.add(v)
+        mst_edges.append((u, v, w))
         
-        # Add all edges from newly visited node
-        for neighbor, weight in graph[to_node]:
-            if neighbor not in visited:
-                available_edges.append((weight, to_node, neighbor))
-    
-    return mst_edges, total_weight
+        for next_v, next_w in graph[v]:
+            if next_v not in visited:
+                edges.append((next_w, v, next_v))
+
+    # PRUNE THE RESULT
+    final_edges = prune_mst(mst_edges, building_names)
+    total_weight = sum(w for _, _, w in final_edges)
+    return final_edges, total_weight

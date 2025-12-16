@@ -251,36 +251,37 @@ function showMST() {
 let mstLayerGroup;
 
 function renderMSTOnMap(edges) {
-    // Create a feature group for MST edges
+    clearMSTLayers();
     mstLayerGroup = L.featureGroup();
     
     edges.forEach(edge => {
-        // Draw lines for edges that have at least one coordinate
-        if (edge.coord1 && edge.coord2) {
-            const latlng1 = [edge.coord1[1], edge.coord1[0]]; // Convert [lon, lat] to [lat, lon]
-            const latlng2 = [edge.coord2[1], edge.coord2[0]];
-            
-            // Determine color based on edge type
-            const isDirectBuilding = edge.is_building_edge;
-            const lineColor = isDirectBuilding ? '#e74c3c' : '#e67e22';  // Red for direct, orange for path
-            const lineWeight = isDirectBuilding ? 4 : 2;
-            const dashArray = isDirectBuilding ? '5, 5' : '3, 3';
-            
-            // Draw MST edge line on map with distinctive styling
-            const line = L.polyline([latlng1, latlng2], {
-                color: lineColor,
-                weight: lineWeight,
-                opacity: 0.8,
-                dashArray: dashArray,
+        let latlngs = [];
+        
+        // Use exact road geometry if available, otherwise straight line
+        if (edge.geometry && edge.geometry.length > 0) {
+            latlngs = edge.geometry.map(coord => [coord[1], coord[0]]);
+        } else if (edge.coord1 && edge.coord2) {
+            latlngs = [
+                [edge.coord1[1], edge.coord1[0]],
+                [edge.coord2[1], edge.coord2[0]]
+            ];
+        }
+
+        if (latlngs.length > 0) {
+            // FORCE RED STYLE
+            const line = L.polyline(latlngs, {
+                color: '#e74c3c',   // Bright Red
+                weight: 4,          // Thick line
+                opacity: 0.9,
+                dashArray: '5, 5',  // Dashed
                 lineCap: 'round',
                 lineJoin: 'round'
-            }).bindPopup(`${edge.node1} ↔ ${edge.node2} (${edge.weight}m)`);
+            }).bindPopup(`${edge.node1} ↔ ${edge.node2}`);
             
             mstLayerGroup.addLayer(line);
         }
     });
     
-    // Add the feature group to the map
     mstLayerGroup.addTo(map);
 }
 
