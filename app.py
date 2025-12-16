@@ -137,7 +137,7 @@ def shortest_path():
 def mst():
     algorithm = request.args.get('algorithm', 'kruskal').lower()
     
-    # 1. Run the MST Algorithm (with pruning logic from algorithms.py)
+    # 1. Run the MST Algorithm
     if algorithm == 'prim':
         mst_edges, total_weight = prim(graph, set(buildings))
     else:
@@ -153,6 +153,7 @@ def mst():
         # Retrieve strict geometry if available
         geometry = edge_geometries.get((node1, node2)) or edge_geometries.get((node2, node1))
         
+        # Check if this is a direct connection between two buildings
         is_direct = (node1 in buildings) and (node2 in buildings)
 
         edge_data = {
@@ -161,7 +162,7 @@ def mst():
             'weight': round(weight, 2),
             'coord1': building_coords.get(node1),
             'coord2': building_coords.get(node2),
-            'geometry': geometry, # This is where the NameError happened
+            'geometry': geometry,
             'is_building_edge': is_direct
         }
         
@@ -169,10 +170,14 @@ def mst():
         if is_direct:
             building_edges.append(edge_data)
 
+    # Calculate the sum of weights for building-only edges
+    building_edges_weight = sum(e['weight'] for e in building_edges)
+
     return jsonify({
         'edges': building_edges,
         'all_edges': all_edges_with_coords,
         'total_weight': round(total_weight, 2),
+        'building_edges_weight': round(building_edges_weight, 2), # <--- This was missing!
         'algorithm': algorithm,
         'buildings_connected_directly': len(building_edges)
     })
