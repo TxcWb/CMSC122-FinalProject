@@ -47,6 +47,20 @@ class HashTable:
                 return f"Building {building_name} deleted."
         return f"Building {building_name} not found."
 
+    def display_building(self, building_name):
+        """Retrieve and display a building in formatted way."""
+        record = self.get(building_name)
+        if not record:
+            print(f"{building_name} not found.")
+            return
+        
+        print(f"Building name : {record['building_name']}")
+        print(f"Coordinates : {record['coordinates']}")
+        
+        for key, value in record['details'].items():
+            print(f"{key} : {value}")
+        return record  # Still returns the dict if needed
+
 
 # Load data from campus_map.geojson
 def load_building_data(file_path):
