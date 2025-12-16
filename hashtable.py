@@ -47,6 +47,20 @@ class HashTable:
                 return f"Building {building_name} deleted."
         return f"Building {building_name} not found."
 
+    def display_building(self, building_name):
+        """Retrieve and display a building in formatted way."""
+        record = self.get(building_name)
+        if not record:
+            print(f"{building_name} not found.")
+            return
+        
+        print(f"Building name : {record['building_name']}")
+        print(f"Coordinates : {record['coordinates']}")
+        
+        for key, value in record['details'].items():
+            print(f"{key} : {value}")
+        return record  # Still returns the dict if needed
+
 
 # Load data from campus_map.geojson
 def load_building_data(file_path):
@@ -62,6 +76,57 @@ def load_building_data(file_path):
                 building_data.append({"Name": name, "Coordinates": coordinates})
     return building_data
 
+# Embedded data for each building category
+def get_embedded_data(building_name):
+    """Get embedded data for a specific building name."""
+    dean_buildings = {
+        "CHSS - Admin Building": {"Dean": "Prof. Jhoanna Lynn B. Cruz ", "Tel. No.": "(082) 293 0084"},
+        "School of Management Building": {"Dean": "Assoc. Prof. Aurelia Luzviminda V. Gomez", "Tel. No.": "(082) 295-2188"},
+        "CSM Building": { "Dean": "Prof. Cleto L. Nanola Jr.", "Tel. No.": "(082) 293 0312"}
+    }
+
+    research_centers = {
+        "CARIM Building": {"Research Focus Areas": "Innovation", "Personnel": "N/A"}
+    }
+
+    libraries = {
+        "Kanto Library": {"Personnel": "Merlyn M. Pausanos, RL", "Opening Hours": "8 AM - 86 PM"}
+    }
+
+    sports_facilities = {
+        "Sports Complex Stadium": {"Athletic training equipment" : "", "Opening Hours": "6 AM - 6 PM"},
+        "Training Gym": {"Fitness Equipment": "Treadmills, Weights", "Opening Hours": "6 AM - 6 PM"},
+        "Cultural Complex Center": {"Performance spaces" : "Stage", "Seating Configuration" : "None"}
+    }
+
+    unavailable_facilities = {
+        "Aquatics Center": {"Status": "Unavailable"}
+    }
+
+    dormitories = {
+        "EBL Dorm": {"Personnel": "Ann Miraflor Batomalaque", "Contact": "https://www.facebook.com/annmiraflor.batomalaque", }
+    }
+
+    # Intersections: explicitly excluded from insertion
+    excluded_intersections = [
+        "TODA Intersection", "Rotunda 1", "Rotunda 2", "Rotunda 3",
+        "CARIM Intersection", "Sports Complex Intersection"
+    ]
+
+    # Skip intersections
+    if building_name in excluded_intersections:
+        return None
+
+    # Determine the category and return data
+    return (
+        dean_buildings.get(building_name)
+        or research_centers.get(building_name)
+        or libraries.get(building_name)
+        or sports_facilities.get(building_name)
+        or unavailable_facilities.get(building_name)
+        or dormitories.get(building_name)
+        or {"Details": "Other or Unknown Building"}
+    )
 
 # Main program
 if __name__ == "__main__":
@@ -72,81 +137,14 @@ if __name__ == "__main__":
     file_path = "campus_map.geojson"
     buildings = load_building_data(file_path)
 
-    # Classifications and their details
-    intersections = ["TODA Intersection", "Rotunda 1", "Rotunda 2", "Rotunda 3", "CARIM Intersection", "Sports Complex Intersection"]
-    dean_buildings = ["CHSS - Admin Building", "School of Management Building", "CSM Building"]
-    research_buildings = ["CARIM Building"]
-    libraries = ["Kanto Library"]
-    sports_facilities = ["Sports Complex Stadium", "Training Gym", "Cultural Complex Center"]
-    unavailable_facilities = ["Aquatics Center"]
-    dormitories = ["EBL Dorm"]
-
-    # Collect user input for buildings
-    print("Provide the necessary details for the following buildings:")
+    # Populate hash table with embedded data
     for building in buildings:
         building_name = building['Name']
         coordinates = building['Coordinates']
-        extra_info = {}
-
-        if building_name in intersections:
-            print(f"\nBuilding Name (Intersection): {building_name}")
-            extra_info["Traffic Flow Pattern"] = input("Enter Traffic Flow Pattern: ")
-            extra_info["Pedestrian Crossing Availability"] = input("Enter Pedestrian Crossing Availability (Yes/No): ")
-            extra_info["Peak Congestion Times"] = input("Enter Peak Congestion Times (e.g., '7-8 AM, 5-6 PM'): ")
-
-        elif building_name in dean_buildings:
-            print(f"\nBuilding Name (Dean Building): {building_name}")
-            extra_info["Departments Housed"] = input("Enter Departments Housed: ")
-            extra_info["Dean"] = input("Enter Dean Name: ")
-            extra_info["Contact Number"] = input("Enter Contact Number: ")
-
-        elif building_name in research_buildings:
-            print(f"\nBuilding Name (Research Center): {building_name}")
-            extra_info["Research Focus Areas"] = input("Enter Research Focus Areas (e.g., 'Medical, Innovation'): ")
-            extra_info["Personnel"] = input("Enter Personnel Name: ")
-            extra_info["Contact Number"] = input("Enter Contact Number: ")
-
-        elif building_name in libraries:
-            print(f"\nBuilding Name (Library): {building_name}")
-            extra_info["Personnel"] = input("Enter Personnel Name: ")
-            extra_info["Contact Number"] = input("Enter Contact Number: ")
-            extra_info["Opening Hours"] = input("Enter Opening Hours (e.g., '8 AM - 6 PM'): ")
-
-        elif building_name in sports_facilities:
-            print(f"\nBuilding Name (Sports Facility): {building_name}")
-            extra_info["Personnel"] = input("Enter Personnel Name: ")
-            extra_info["Contact Number"] = input("Enter Contact Number: ")
-            extra_info["Opening Hours"] = input("Enter Opening Hours (e.g., '8 AM - 6 PM'): ")
-
-        elif building_name in unavailable_facilities:
-            print(f"\nBuilding Name: {building_name}")
-            extra_info["Status"] = "Unavailable"
-
-        elif building_name in dormitories:
-            print(f"\nBuilding Name (Dormitory): {building_name}")
-            extra_info["Personnel"] = input("Enter Personnel Name: ")
-            extra_info["Contact Number"] = input("Enter Contact Number: ")
-            extra_info["Number of Rooms Available"] = input("Enter Number of Rooms Available: ")
-
-        else:
-            print(f"\nBuilding Name (Other): {building_name}")
-            extra_info["Details"] = input("Enter Additional Details: ")
-
-        table.add(building_name, coordinates, extra_info)
+        extra_info = get_embedded_data(building_name)
+        if extra_info:  # Only add buildings that are not excluded (e.g., intersections)
+            table.add(building_name, coordinates, extra_info)
 
     # Fetch a building record
-    building_to_fetch = input("\nEnter the name of the building to fetch its details: ")
-    fetched_building = table.get(building_to_fetch)
-    if fetched_building:
-        print(f"Details for {building_to_fetch}:")
-        print(fetched_building)
-    else:
-        print(f"{building_to_fetch} not found.")
-
-    # Delete a building record
-    building_to_delete = input("\nEnter the name of the building to delete: ")
-    print(table.delete(building_to_delete))
-
-    # Verify deletion
-    print(f"Verifying deletion of {building_to_delete}:")
-    print(table.get(building_to_delete))
+    table.display_building("CHSS - Admin Building")
+    
