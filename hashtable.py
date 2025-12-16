@@ -76,6 +76,57 @@ def load_building_data(file_path):
                 building_data.append({"Name": name, "Coordinates": coordinates})
     return building_data
 
+# Embedded data for each building category
+def get_embedded_data(building_name):
+    """Get embedded data for a specific building name."""
+    dean_buildings = {
+        "CHSS - Admin Building": {"Dean": "Prof. Jhoanna Lynn B. Cruz ", "Tel. No.": "(082) 293 0084"},
+        "School of Management Building": {"Dean": "Assoc. Prof. Aurelia Luzviminda V. Gomez", "Tel. No.": "(082) 295-2188"},
+        "CSM Building": { "Dean": "Prof. Cleto L. Nanola Jr.", "Tel. No.": "(082) 293 0312"}
+    }
+
+    research_centers = {
+        "CARIM Building": {"Research Focus Areas": "Innovation", "Personnel": "N/A"}
+    }
+
+    libraries = {
+        "Kanto Library": {"Personnel": "Merlyn M. Pausanos, RL", "Opening Hours": "8 AM - 86 PM"}
+    }
+
+    sports_facilities = {
+        "Sports Complex Stadium": {"Athletic training equipment" : "", "Opening Hours": "6 AM - 6 PM"},
+        "Training Gym": {"Fitness Equipment": "Treadmills, Weights", "Opening Hours": "6 AM - 6 PM"},
+        "Cultural Complex Center": {"Performance spaces" : "Stage", "Seating Configuration" : "None"}
+    }
+
+    unavailable_facilities = {
+        "Aquatics Center": {"Status": "Unavailable"}
+    }
+
+    dormitories = {
+        "EBL Dorm": {"Personnel": "Ann Miraflor Batomalaque", "Contact": "https://www.facebook.com/annmiraflor.batomalaque", }
+    }
+
+    # Intersections: explicitly excluded from insertion
+    excluded_intersections = [
+        "TODA Intersection", "Rotunda 1", "Rotunda 2", "Rotunda 3",
+        "CARIM Intersection", "Sports Complex Intersection"
+    ]
+
+    # Skip intersections
+    if building_name in excluded_intersections:
+        return None
+
+    # Determine the category and return data
+    return (
+        dean_buildings.get(building_name)
+        or research_centers.get(building_name)
+        or libraries.get(building_name)
+        or sports_facilities.get(building_name)
+        or unavailable_facilities.get(building_name)
+        or dormitories.get(building_name)
+        or {"Details": "Other or Unknown Building"}
+    )
 
 # Main program
 if __name__ == "__main__":
