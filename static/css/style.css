@@ -358,20 +358,41 @@ footer p:last-child {
   }
 }
 
-/* responsive(?) */
-@media (max-width: 480px) {
-  .container {
-    gap: 1rem;
-    margin: 1rem auto;
-  }
+/*popip from hashtable */
+.building-popup {
+  font-family: "Poppins", sans-serif;
+  padding: 0;
+}
 
-  .controls,
-  .map-container,
-  .results {
-    padding: 1rem;
-  }
+.building-popup strong {
+  color: #f95a50;
+  display: block;
+  margin-bottom: 6px;
+  font-size: 14px;
+}
+
+.building-popup ul {
+  list-style: none;
+  margin: 8px 0;
+  padding-left: 0;
+  border-top: 1px solid #e0e0e0;
+  padding-top: 6px;
+}
+
+.building-popup li {
+  margin: 4px 0;
+  font-size: 11px;
+  color: #555;
+  line-height: 1.4;
+}
+
+.building-popup li strong {
+  color: #666;
+  font-weight: 600;
+  margin-bottom: 0;
+}
 
   button {
     padding: 0.875rem;
   }
-}
+
