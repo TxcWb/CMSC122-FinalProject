@@ -1,3 +1,12 @@
+# CMSC 122 Final Project
+# Jhaye Marie H. Gonzales
+# Nas John D. Lumapas
+# Jay Emerson P. Navares
+# Eve Loraine M. Nuñal
+# Krystel Mikylla M. Perez
+# Rey Marvin C. Rizal
+# Rex Uriel I. Villaflores
+
 """Hash table utilities for building lookup.
 
 Loads buildings from the GeoJSON map and stores them in a simple hash table

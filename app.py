@@ -1,3 +1,12 @@
+# CMSC 122 Final Project
+# Jhaye Marie H. Gonzales
+# Nas John D. Lumapas
+# Jay Emerson P. Navares
+# Eve Loraine M. Nuñal
+# Krystel Mikylla M. Perez
+# Rey Marvin C. Rizal
+# Rex Uriel I. Villaflores
+
 from flask import Flask, render_template, request, jsonify
 import json
 import os
