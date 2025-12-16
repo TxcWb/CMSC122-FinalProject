@@ -90,7 +90,7 @@ def get_embedded_data(building_name):
     }
 
     libraries = {
-        "Kanto Library": {"Personnel": "Merlyn M. Pausanos, RL", "Opening Hours": "8 AM - 86 PM"}
+        "Library": {"Personnel": "Merlyn M. Pausanos, RL", "Opening Hours": "8 AM - 86 PM"}
     }
 
     sports_facilities = {
@@ -103,8 +103,9 @@ def get_embedded_data(building_name):
         "Aquatics Center": {"Status": "Unavailable"}
     }
 
-    dormitories = {
-        "EBL Dorm": {"Personnel": "Ann Miraflor Batomalaque", "Contact": "https://www.facebook.com/annmiraflor.batomalaque", }
+    student_buildings = {
+        "EBL Dorm": {"Personnel": "Ann Miraflor Batomalaque", "Contact": "https://www.facebook.com/annmiraflor.batomalaque", },
+        "Kalimudan / Student Center Lane": {"Facilities": "Canteen, lounges", "Opening Hours": "7 AM - 6 PM"}
     }
 
     # Intersections: explicitly excluded from insertion
@@ -124,7 +125,7 @@ def get_embedded_data(building_name):
         or libraries.get(building_name)
         or sports_facilities.get(building_name)
         or unavailable_facilities.get(building_name)
-        or dormitories.get(building_name)
+        or student_buildings.get(building_name)
         or {"Details": "Other or Unknown Building"}
     )
 
