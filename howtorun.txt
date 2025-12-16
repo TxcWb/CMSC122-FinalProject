@@ -1,0 +1,3 @@
+Makesure na download ang dependencies
+run python app.py
+adto sa http://localhost:5000
