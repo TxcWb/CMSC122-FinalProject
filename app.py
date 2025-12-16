@@ -3,6 +3,7 @@ import json
 import os
 from pathlib import Path
 from algorithms import dijkstra, build_graph_from_geojson, kruskal, prim
+from hashtable import HashTable, load_building_data, get_embedded_data
 
 app = Flask(__name__)
 
@@ -21,6 +22,16 @@ try:
     
     buildings = list(building_names)
     print(f"DEBUG: Built graph with {len(graph)} nodes and {len(buildings)} buildings")
+
+    building_hash_table = HashTable(50)
+    geojson_buildings = load_building_data(geojson_path)
+    for building in geojson_buildings:
+        building_name = building['Name']
+        coordinates = building['Coordinates']
+        extra_info = get_embedded_data(building_name)
+        if extra_info:  # Only add buildings that are not excluded
+            building_hash_table.add(building_name, coordinates, extra_info)
+    print(f"DEBUG: Initialized hash table with building information")
     
     # 3. Build 'edge_geometries' map
     # This maps specific node-to-node connections back to their curvy GeoJSON lines
@@ -82,6 +93,22 @@ def get_buildings():
         main = [b for b in main_buildings if b in buildings]
         others = sorted([b for b in buildings if b not in main_buildings])
         return jsonify({'main': main, 'others': others, 'all': buildings})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/building-info/<building_name>')
+def get_building_info(building_name):
+    """Fetch building information from the hash table."""
+    try:
+        record = building_hash_table.get(building_name)
+        if record:
+            return jsonify({
+                'name': record['building_name'],
+                'coordinates': record['coordinates'],
+                'details': record['details']
+            })
+        else:
+            return jsonify({'error': 'Building not found'}), 404
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 

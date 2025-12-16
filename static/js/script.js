@@ -2,6 +2,41 @@
 let map;
 let campusData;
 
+// fetch the building information from hashtable and display on hover
+function fetchBuildingInfo(buildingName, marker) {
+    fetch(`/api/building-info/${encodeURIComponent(buildingName)}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                marker.setPopupContent(`<strong>${buildingName}</strong><br><em>No details available</em>`);
+            } else {
+                let popupContent = `<div class="building-popup">
+                    <strong>${data.name}</strong><br>`;
+                // display 
+                if (data.details && Object.keys(data.details).length > 0) {
+                    popupContent += '<ul style="margin: 8px 0; padding-left: 18px; font-size: 12px;">';
+                    for (const [key, value] of Object.entries(data.details)) {
+                        if (value) {
+                            const displayValue = String(value).length > 40 
+                                ? String(value).substring(0, 40) + '...' 
+                                : value;
+                            popupContent += `<li><strong>${key}:</strong> ${displayValue}</li>`;
+                        }
+                    }
+                    popupContent += '</ul>';
+                }
+                popupContent += '</div>';
+                marker.setPopupContent(popupContent);
+            }
+            marker.openPopup();
+        })
+        .catch(error => {
+            console.error('Error fetching building info:', error);
+            marker.setPopupContent(`<strong>${buildingName}</strong><br><em>No details available</em>`);
+            marker.openPopup();
+        });
+}
+
 // Load buildings when page loads
 window.onload = function() {
     initMap();
@@ -26,7 +61,18 @@ function initMap() {
             // Add GeoJSON layer
             L.geoJSON(data, {
                 pointToLayer: function(feature, latlng) {
-                    return L.marker(latlng).bindPopup(feature.properties.Name || 'Unknown');
+                    const marker = L.marker(latlng);
+                    const buildingName = feature.properties.Name || 'Unknown';
+                    // mouseover and mouseout events to show building info
+                    marker.on('mouseover', function() {
+                        fetchBuildingInfo(buildingName, marker);
+                    });
+                    
+                    marker.on('mouseout', function() {
+                        marker.closePopup();
+                    });
+                    marker.bindPopup(buildingName);
+                    return marker;
                 },
                 style: function(feature) {
                     return {
