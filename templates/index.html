@@ -1,60 +1,66 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>UP Mindanao Campus Navigator</title>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-</head>
-<body>
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    />
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='css/style.css') }}"
+    />
+  </head>
+  <body>
     <header>
-        <h1>🎓 UP Mindanao Campus Navigator</h1>
-        <p>Find your way around campus</p>
+      <h1>🐈‍⬛ UP Mindanao Campus Navigator</h1>
+      <p>Find your way around campus</p>
     </header>
 
     <main class="container">
-        <div class="controls">
-            <h2>Find Your Path</h2>
-            
-            <div class="form-group">
-                <label for="source">From:</label>
-                <select id="source">
-                    <option value="">Select starting point</option>
-                </select>
-            </div>
+      <div class="controls">
+        <h2>Find Your Path 🚶🏻‍♂️‍➡️</h2>
 
-            <div class="form-group">
-                <label for="destination">To:</label>
-                <select id="destination">
-                    <option value="">Select destination</option>
-                </select>
-            </div>
-
-            <button onclick="findPath()" class="btn-primary">Find Shortest Path</button>
-            <button onclick="showMST()" class="btn-secondary">Generate MST</button>
+        <div class="form-group">
+          <label for="source">From:</label>
+          <select id="source">
+            <option value="">Select starting point</option>
+          </select>
         </div>
 
-        <div class="map-container">
-            <h3>Campus Map</h3>
-            <div id="map"></div>
+        <div class="form-group">
+          <label for="destination">To:</label>
+          <select id="destination">
+            <option value="">Select destination</option>
+          </select>
         </div>
 
-        <div class="results" id="results">
-            <h3>Results</h3>
-            <div id="output">
-                <p>Select two buildings to find the shortest path between them.</p>
-            </div>
-        </div>
+        <button onclick="findPath()" class="btn-primary">
+          Find Shortest Path
+        </button>
+        <button onclick="showMST()" class="btn-secondary">Generate MST</button>
+      </div>
 
-       
+      <div class="map-container">
+        <h2>Campus Map 📍</h2>
+        <div id="map"></div>
+      </div>
+
+      <div class="results" id="results">
+        <h2>Results</h2>
+        <div id="output">
+          <p>Select two buildings to find the shortest path between them.</p>
+        </div>
+      </div>
     </main>
 
     <footer>
-        <p>UP Mindanao Campus Navigation System | CMSC 122 Final Project</p>
+      <p>UP Mindanao Campus Navigation System | CMSC 122 Final Project</p>
     </footer>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="{{ url_for('static', filename='js/script.js') }}"></script>
-</body>
+  </body>
 </html>
