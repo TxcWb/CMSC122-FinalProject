@@ -2,7 +2,6 @@ from flask import Flask, render_template, request, jsonify
 import json
 import os
 from pathlib import Path
-import requests
 from algorithms import dijkstra, build_graph_from_geojson, kruskal, prim
 
 app = Flask(__name__)

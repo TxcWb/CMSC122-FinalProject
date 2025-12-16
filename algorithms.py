@@ -61,52 +61,67 @@
 # dijkstra
 from typing import Dict, List, Tuple, Optional, Set
 
-# --- [Existing MinHeap class remains the same] ---
+# custom minheap implementation for dijkstra optimization
 class MinHeap:
     def __init__(self):
         self.heap = []
+    #minheap common functions
     def push(self, item: Tuple[float, str]) -> None:
         self.heap.append(item)
         self._bubble_up(len(self.heap) - 1)
     def pop(self) -> Tuple[float, str]:
-        if len(self.heap) == 0: raise IndexError("pop from empty heap")
-        if len(self.heap) == 1: return self.heap.pop()
+        if len(self.heap) == 0:
+            raise IndexError("pop from empty heap")
+        if len(self.heap) == 1:
+            return self.heap.pop()
         min_item = self.heap[0]
         self.heap[0] = self.heap.pop()
         self._bubble_down(0)
         return min_item
-    def __len__(self) -> int: return len(self.heap)
+    
+    def __len__(self) -> int:
+        return len(self.heap)
     def _bubble_up(self, index: int) -> None:
         while index > 0:
             parent_index = (index - 1) // 2
             if self.heap[index] < self.heap[parent_index]:
                 self.heap[index], self.heap[parent_index] = self.heap[parent_index], self.heap[index]
                 index = parent_index
-            else: break
+            else:
+                break
     def _bubble_down(self, index: int) -> None:
         while True:
             smallest = index
             left_child = 2 * index + 1
             right_child = 2 * index + 2
+            
             if left_child < len(self.heap) and self.heap[left_child] < self.heap[smallest]:
                 smallest = left_child
             if right_child < len(self.heap) and self.heap[right_child] < self.heap[smallest]:
                 smallest = right_child
+            
             if smallest != index:
                 self.heap[index], self.heap[smallest] = self.heap[smallest], self.heap[index]
                 index = smallest
-            else: break
+            else:
+                break
 
-# --- [Math functions remain the same] ---
+# manual math functions
+
+#convert degrees to radians
 def manual_radians(degrees: float) -> float:
     pi = 3.141592653589793
     return degrees * (pi / 180.0)
 
+# calc sine using taylor series approximation
 def manual_sin(x: float) -> float:
     pi = 3.141592653589793
     two_pi = 2 * pi
+    # normalize angle to [-pi, pi]
     x = x % two_pi
-    if x > pi: x = x - two_pi
+    if x > pi:
+        x = x - two_pi
+    # the taylor series
     result = 0.0
     term = x
     for n in range(1, 20):
@@ -114,11 +129,14 @@ def manual_sin(x: float) -> float:
         term *= -x * x / ((2 * n) * (2 * n + 1))
     return result
 
+# calc cos using taylor series approximation
 def manual_cos(x: float) -> float:
     pi = 3.141592653589793
     two_pi = 2 * pi
+    # normalize angle to [-pi, pi]
     x = x % two_pi
-    if x > pi: x = x - two_pi
+    if x > pi:
+        x = x - two_pi
     result = 1.0
     term = 1.0
     for n in range(1, 20):
@@ -126,18 +144,26 @@ def manual_cos(x: float) -> float:
         result += term
     return result
 
+# manual square_root
 def manual_sqrt(x: float) -> float:
-    if x < 0: raise ValueError("Cannot take square root of negative number")
-    if x == 0: return 0.0
+    if x < 0:
+        raise ValueError("Cannot take square root of negative number")
+    if x == 0:
+        return 0.0
+    # Newton's method: x_{n+1} = (x_n + x/x_n) / 2
     guess = x
     for _ in range(50):
         next_guess = (guess + x / guess) / 2.0
-        if abs(next_guess - guess) < 1e-10: break
+        if abs(next_guess - guess) < 1e-10:
+            break
         guess = next_guess
+    
     return guess
 
 def manual_asin(x: float) -> float:
-    if x < -1 or x > 1: raise ValueError("asin domain error")
+    """Calculate arcsine using Taylor series approximation"""
+    if x < -1 or x > 1:
+        raise ValueError("asin domain error")
     result = 0.0
     term = x
     x_squared = x * x
@@ -146,143 +172,189 @@ def manual_asin(x: float) -> float:
         term *= x_squared * (2.0 * n + 1) / (2.0 * n + 2)
     return result
 
+# distance calc using haversine distance using args coord1 and coord2 to ret distance in meters
 def haversine_distance(coord1: Tuple[float, float], coord2: Tuple[float, float]) -> float:
     lon1, lat1 = coord1
     lon2, lat2 = coord2
-    lon1 = manual_radians(lon1); lat1 = manual_radians(lat1)
-    lon2 = manual_radians(lon2); lat2 = manual_radians(lat2)
+    lon1 = manual_radians(lon1)
+    lat1 = manual_radians(lat1)
+    lon2 = manual_radians(lon2)
+    lat2 = manual_radians(lat2)
+
+    # haversine formula
     dlon = lon2 - lon1
     dlat = lat2 - lat1
     a = manual_sin(dlat/2)**2 + manual_cos(lat1) * manual_cos(lat2) * manual_sin(dlon/2)**2
     c = 2 * manual_asin(manual_sqrt(a))
+
     r = 6371000
     return c * r
 
-# --- [Updated Graph Builder with Robust Snapping] ---
-def build_graph_from_geojson(geojson_data: dict) -> Tuple[Dict[str, List[Tuple[str, float]]], Dict[str, Tuple[float, float]], Set[str]]:
+
+#weighted graph building in geojson using multilinestring pathways where bldgs are positioned on the pathway coorsd
+
+def build_graph_from_geojson(geojson_data: dict) -> Tuple[Dict[str, List[Tuple[str, float]]], Dict[str, Tuple[float, float]]]:
+    # extract all bldgs and their coordds
     buildings = {}
-    
-    # 1. Extract Buildings
     for feature in geojson_data['features']:
         if feature['geometry']['type'] == 'Point':
             name = feature['properties'].get('Name', '')
             if name and name != 'Campus Pathways':
                 coords = feature['geometry']['coordinates']
-                buildings[name] = (coords[0], coords[1])
-
-    # Helper to find node IDs
-    coord_to_node = {}
-    node_coords = {}
-    node_counter = 0
-
+                buildings[name] = (coords[0], coords[1])  # (lon, lat)
+    #idenitfy bldg name of the node
     def get_building_at_coord(lon: float, lat: float) -> Optional[str]:
-        TOLERANCE = 0.0000001
+        TOLERANCE = 0.0000001  # Very small tolerance for coordinate matching
         for building_name, (b_lon, b_lat) in buildings.items():
             if abs(lon - b_lon) < TOLERANCE and abs(lat - b_lat) < TOLERANCE:
                 return building_name
         return None
-
+    # fetch and create node id if none
+    coord_to_node = {}
+    node_coords = {}  # NEW: store coordinates for path nodes
+    node_counter = 0
     def get_node_id(lon: float, lat: float) -> str:
         nonlocal node_counter
+        # bldg checker if theres bldg in this coord
         building_name = get_building_at_coord(lon, lat)
-        if building_name: return building_name
-        
+        if building_name:
+            return building_name
+        # round coords
         coord_key = (round(lon, 8), round(lat, 8))
-        if coord_key in coord_to_node: return coord_to_node[coord_key]
-        
+        # check if there's created node for this already
+        if coord_key in coord_to_node:
+            return coord_to_node[coord_key]
         node_id = f"node_{node_counter}"
         coord_to_node[coord_key] = node_id
-        node_coords[node_id] = (lon, lat)
+        node_coords[node_id] = (lon, lat)  # NEW: store original coordinates
         node_counter += 1
         return node_id
 
+    # build weighted graph from multilinestring pathways using adjacnecy list
     graph = {}
-    
-    # 2. Build Graph from Lines
+
+    #process all features to find multilinestring and linestirng
     for feature in geojson_data['features']:
-        geom = feature['geometry']
-        lines = []
-        if geom['type'] == 'LineString':
-            lines = [geom['coordinates']]
-        elif geom['type'] == 'MultiLineString':
-            lines = geom['coordinates']
-            
-        for coords in lines:
-            for i in range(len(coords) - 1):
-                start = coords[i]
-                end = coords[i+1]
-                u = get_node_id(start[0], start[1])
-                v = get_node_id(end[0], end[1])
-                dist = haversine_distance(start, end)
-                
-                if u not in graph: graph[u] = []
-                if v not in graph: graph[v] = []
-                
-                # Check for existing edge to prevent duplicates
-                if not any(neighbor == v for neighbor, _ in graph[u]):
-                    graph[u].append((v, dist))
-                    graph[v].append((u, dist))
+        geom_type = feature['geometry']['type']
 
-    # 3. Snap Floating Buildings to Nearest Road Node
-    path_nodes = [n for n in graph.keys() if n not in buildings]
-    for b_name, b_coords in buildings.items():
-        if b_name in graph and len(graph[b_name]) > 0: continue
-        
-        nearest = None
-        min_dist = float('inf')
-        
-        for p_node in path_nodes:
-            p_coords = node_coords.get(p_node) or buildings.get(p_node)
-            if p_coords:
-                d = haversine_distance(b_coords, p_coords)
-                if d < min_dist:
-                    min_dist = d
-                    nearest = p_node
-        
-        # Snap if within 100m
-        if nearest and min_dist < 100.0:
-            if b_name not in graph: graph[b_name] = []
-            graph[b_name].append((nearest, min_dist))
-            graph[nearest].append((b_name, min_dist))
+        if geom_type == 'MultiLineString':
+            line_list = feature['geometry']['coordinates']
 
+            for line_coords in line_list:
+                for i in range(len(line_coords) - 1):
+                    start_lon, start_lat = line_coords[i][0], line_coords[i][1]
+                    end_lon, end_lat = line_coords[i + 1][0], line_coords[i + 1][1]
+                    start_node = get_node_id(start_lon, start_lat)
+                    end_node = get_node_id(end_lon, end_lat)
+                    # distance calcs
+                    distance = haversine_distance(
+                        (start_lon, start_lat),
+                        (end_lon, end_lat)
+                    )
+                    #init start and end node
+                    if start_node not in graph:
+                        graph[start_node] = []
+                    if end_node not in graph:
+                        graph[end_node] = []
+                    #bidirectional edges
+                    edge_exists = False
+                    for neighbor, dist in graph[start_node]:
+                        if neighbor == end_node and abs(dist - distance) < 0.001:
+                            edge_exists = True
+                            break
+                    if not edge_exists:
+                        graph[start_node].append((end_node, distance))
+                        graph[end_node].append((start_node, distance))
+
+        elif geom_type == 'LineString':
+            line_coords = feature['geometry']['coordinates']
+            for i in range(len(line_coords) - 1):
+                start_lon, start_lat = line_coords[i][0], line_coords[i][1]
+                end_lon, end_lat = line_coords[i + 1][0], line_coords[i + 1][1]
+                start_node = get_node_id(start_lon, start_lat)
+                end_node = get_node_id(end_lon, end_lat)
+                distance = haversine_distance(
+                    (start_lon, start_lat),
+                    (end_lon, end_lat)
+                )
+
+                if start_node not in graph:
+                    graph[start_node] = []
+                if end_node not in graph:
+                    graph[end_node] = []
+
+                edge_exists = False
+                for neighbor, dist in graph[start_node]:
+                    if neighbor == end_node and abs(dist - distance) < 0.001:
+                        edge_exists = True
+                        break
+
+                if not edge_exists:
+                    graph[start_node].append((end_node, distance))
+                    graph[end_node].append((start_node, distance))
+
+    # Combine buildings and path nodes for complete coordinate dict
     all_coords = {**buildings, **node_coords}
+    
+    # Return graph, all coordinates, and building names set for distinction
     return graph, all_coords, set(buildings.keys())
 
-# --- [Dijkstra (unchanged)] ---
-def dijkstra(graph, source, destination):
-    if source not in graph or destination not in graph: return None, None
-    if source == destination: return [source], 0.0
-    
-    distances = {node: float('inf') for node in graph}
+# dijkstra's algorithm with min-heap optimization using graph adjacency list, source or starting node, and destination as args
+def dijkstra(graph: Dict[str, List[Tuple[str, float]]],
+             source: str,
+             destination: str) -> Tuple[Optional[List[str]], Optional[float]]:
+    # input validation
+    if source not in graph:
+        return None, None
+    if destination not in graph:
+        return None, None
+    if source == destination:
+        return [source], 0.0
+    # init distances to infinity for all nodes
+    distances = {node: float('infinity') for node in graph}
     distances[source] = 0
-    previous = {node: None for node in graph}
-    pq = MinHeap()
+
+    previous = {node: None for node in graph} # track previous node for path reconstruction
+    pq = MinHeap() # custom priority queue: (distance, node)
     pq.push((0, source))
-    visited = set()
+    visited = set() # visited nodes tracker
 
     while len(pq) > 0:
-        d, u = pq.pop()
-        if u in visited: continue
-        visited.add(u)
-        if u == destination: break
-        if d > distances[u]: continue
-        
-        for v, weight in graph[u]:
-            if v in visited: continue
-            new_dist = d + weight
-            if new_dist < distances[v]:
-                distances[v] = new_dist
-                previous[v] = u
-                pq.push((new_dist, v))
-                
-    if distances[destination] == float('inf'): return None, None
-    
+        current_dist, current = pq.pop()
+        # skip if already visited
+        if current in visited:
+            continue
+        visited.add(current)
+        #stop when we reach destination
+        if current == destination:
+            break
+        # skip if we found a better path
+        if current_dist > distances[current]:
+            continue
+        # check all neighbors
+        for neighbor, weight in graph[current]:
+            if neighbor in visited:
+                continue
+            # calculate tentative distance
+            distance = current_dist + weight
+            # update if we found a shorter path
+            if distance < distances[neighbor]:
+                distances[neighbor] = distance
+                previous[neighbor] = current
+                pq.push((distance, neighbor))
+    # check if destination is reachable
+    if distances[destination] == float('infinity'):
+        return None, None
+    # reconstruct path from end to start
     path = []
-    curr = destination
-    while curr:
-        path.append(curr)
-        curr = previous[curr]
-    return path[::-1], distances[destination]
+    current = destination
+    while current is not None:
+        path.append(current)
+        current = previous[current]
+    # Reverse to get path from source to destination
+    path.reverse()
+
+    return path, distances[destination]
 
 # --- [New Pruning Logic] ---
 def prune_mst(mst_edges: List[Tuple[str, str, float]], building_names: Set[str]) -> List[Tuple[str, str, float]]:
